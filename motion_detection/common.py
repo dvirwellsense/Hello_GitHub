@@ -1,7 +1,7 @@
 import csv, glob, numpy as np, cv2
 from calib import *
 import os
-SCAN = os.environ['SCAN_DIR']
+SCAN = os.environ.get('SCAN_DIR') or glob.glob('scan/arc*')[0]
 rows = list(csv.DictReader(open(SCAN + '/frames.csv', encoding='utf-8-sig')))
 angle = np.array([float(r['arm_angle_effective']) for r in rows])
 a_before = np.array([float(r['arm_angle_before_capture']) for r in rows])

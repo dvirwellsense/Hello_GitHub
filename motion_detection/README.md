@@ -16,3 +16,8 @@ Setup: `pip install opencv-python-headless numpy scipy`, then
 | `inject_epi.py` | Sensitivity: synthetic "limb" shifts injected into phantom tracks, scored with encoder-pose epipolar check |
 
 Run order: `tracks.py 40 110 tracks_sweep.npy` -> `run_ba.py` -> `window_check.py` / `inject_epi.py`.
+
+## Volunteer scan A28_1 (motion labelled 63–85)
+`seq_eval.py SCAN_DIR person|phantom out.csv` scores every adjacent pair with: current 2D-alignment residual,
+image-based epipolar distance, and encoder-pose epipolar distance (gantry model from the phantom fit, `gantry_fit.npy`).
+`body.py` is a simple HSV person mask (shirt + skin) used to label body points. Result plot: `A28_1_scores.png`.

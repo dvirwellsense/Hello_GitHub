@@ -1,0 +1,5 @@
+numpy
+scipy
+opencv-python
+matplotlib
+ultralytics   # person segmentation (YOLOv8-seg); downloads yolov8s-seg.pt on first use

@@ -1,23 +1,78 @@
-# Patient motion detection – rigidity check prototype
+# זיהוי תנועת מטופל ממצלמת הקשת: בדיקת קשיחות
 
-Offline prototype used on phantom scan `arc22_office_20260830_121542` (static chest phantom).
+בודקים אם הסצנה (מטופל, מיטה ורצפה) מתנהגת כגוף קשיח כשהמצלמה מסתובבת עם הקשת.
+מיקום המצלמה בכל פריים מחושב מה-encoder דרך מודל הקשת. נקודה על הגוף שיוצאת מהקו
+האפיפולרי שלה פירושה תנועה. הבדיקה סיבתית: היא משתמשת רק בפריים הנוכחי ובפריים הקודם,
+ולכן אפשר להריץ אותה בזמן אמת.
 
-Setup: `pip install opencv-python-headless numpy scipy`, then
-`export SCAN_DIR=<folder with frames.csv and images/>  CALIB_JSON=<CalibrationResult_arc22.json>`.
+## מבנה התיקייה
 
-| script | what it does |
-|---|---|
-| `calib.py` | Calibration frame mapping: raw 1280x720 -> resize 640x360 -> pad x by `m_iXoffset` -> 894x360, rational 8-coef model |
-| `pairwise.py` | Adjacent pairs: 2D similarity residual (current method) vs epipolar residual on phantom points |
-| `tracks.py FIRST LAST out.npy` | Long KLT tracks (forward-backward checked), labelled phantom / specular / background |
-| `gantry.py`, `run_ba.py` | Gantry model: camera rigidly rotating about a fixed axis by the encoder angle; fits extrinsics + sync factor |
-| `free_ba.py` | Bundle adjustment with a free pose per frame (image-based ego-motion) |
-| `window_check.py` | Model fit quality on 8-frame sliding windows (encoder poses vs image poses) |
-| `inject_epi.py` | Sensitivity: synthetic "limb" shifts injected into phantom tracks, scored with encoder-pose epipolar check |
+```
+motion/                 ספרייה
+  calib.py              כיול ה-fisheye (פורמט CalibrationResult של ARC22)
+  scan.py               טעינת סריקה (תיקייה או ZIP) וזווית הקשת בכל פריים
+  gantry.py             מודל הקשת: מצלמה שמסתובבת סביב ציר קבוע, התאמה ומטריצה אסנציאלית
+  masks.py              מסכות: סגמנטציית אדם (YOLOv8-seg), פאנטום, השתקפויות
+  tracking.py           מעקב KLT עם בדיקה קדימה-אחורה
+  rigidity.py           הציונים לזוג פריימים: השיטה הנוכחית, אפיפולרי מהתמונה, אפיפולרי מה-encoder
+scripts/
+  evaluate_scan.py      הסקריפט הראשי: ציון לכל זוג פריימים, התרעות, CSV וגרף
+  fit_gantry.py         התאמת מודל הקשת מסריקה סטטית (פאנטום או מיטה ריקה)
+  show_residuals.py     תמונה של השארית לכל נקודה בזוג פריימים אחד
+  breathing.py          ניסיוני: אות נשימה עם פער של כמה פריימים
+data/
+  CalibrationResult_arc22.json
+  gantry_arc22.json     מודל הקשת של ARC22, הותאם על סריקת הפאנטום מ-30.08
+results/                תוצאות על הסריקות שנבדקו
+```
 
-Run order: `tracks.py 40 110 tracks_sweep.npy` -> `run_ba.py` -> `window_check.py` / `inject_epi.py`.
+## התקנה
 
-## Volunteer scan A28_1 (motion labelled 63–85)
-`seq_eval.py SCAN_DIR person|phantom out.csv` scores every adjacent pair with: current 2D-alignment residual,
-image-based epipolar distance, and encoder-pose epipolar distance (gantry model from the phantom fit, `gantry_fit.npy`).
-`body.py` is a simple HSV person mask (shirt + skin) used to label body points. Result plot: `A28_1_scores.png`.
+```
+pip install -r requirements.txt
+```
+
+בהרצה הראשונה ultralytics מוריד את `yolov8s-seg.pt` (כ-25MB).
+
+## שימוש
+
+```
+python scripts/evaluate_scan.py --scan <scan.zip|folder> \
+    --calib data/CalibrationResult_arc22.json --gantry data/gantry_arc22.json \
+    --out results/scan.csv --plot results/scan.png [--label 63-85]
+```
+
+פרמטרים עיקריים:
+
+| פרמטר | ברירת מחדל | משמעות |
+|---|---|---|
+| `--threshold` | 2 | סף ההתרעה בפיקסלים |
+| `--persistence` | 2 | מספר הפריימים הרצופים מעל הסף שנדרש להתרעה |
+| `--erode` | 21 | כמה פיקסלים לכווץ את מסכת הגוף, כדי להוריד נקודות בשולי הגוף |
+| `--sync` | 0.9 | מיקום הזווית בין הקריאה שלפני הצילום לקריאה שאחריו |
+| `--mask` | `seg` | סוג המסכה: `seg`, `color` או `phantom` |
+
+**יחידות:** הפיקסלים הם של התמונה המתוקנת בחצי רזולוציה. פיקסל אחד הוא בערך 2.2 מ"מ במישור המיטה.
+
+## תוצאות (סף 2 פיקסלים, 2 פריימים רצופים)
+
+| סריקה | מה קרה | התרעות |
+|---|---|---|
+| A28_1 | תנועת חזה מכוונת בפריימים 63–85 | 64–85 |
+| | תנועה באגן ובמכנסיים (לא תויגה) | 107–112 |
+| | שילוב ידיים בזמן החזרה (לא תויג) | 140–150 |
+| VC01 עצירת נשימה | תנועת פה או פנים לפני עצירת הנשימה | 17 |
+| VC01 נשימה רגילה | המתנדב קם בסוף הסריקה | 152–155 |
+| | במהלך הסיבוב | אין התרעות |
+
+**נשימה:** לא מזוהה בגישה הזו. הבדיקה בין פריימים סמוכים וגם הבדיקה עם פער של 2, 4 ו-8 פריימים
+(`breathing.py`) נותנות ערכים זהים בעצירת נשימה ובנשימה רגילה.
+
+## התאמה מחדש של מודל הקשת (מכונה חדשה או שינוי בהרכבה)
+
+```
+python scripts/fit_gantry.py --scan <static_scan> --calib data/CalibrationResult_arc22.json \
+    --first 40 --last 110 --out data/gantry_<machine>.json
+```
+
+`--first` ו-`--last` הם אינדקסים (מ-0) של תחילת הסיבוב וסופו.

@@ -2,4 +2,4 @@ numpy
 scipy
 opencv-python
 matplotlib
-ultralytics   # person segmentation (YOLOv8-seg); downloads yolov8s-seg.pt on first use
+ultralytics   # person segmentation (YOLOv8-seg); downloads yolov8m-seg.pt on first use

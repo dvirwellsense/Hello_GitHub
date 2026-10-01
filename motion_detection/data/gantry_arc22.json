@@ -1,14 +1,14 @@
 {
   "cam": [
-    1.246912512323186,
-    1.1428516382014393,
-    -1.1290193355294214,
-    -0.09740911195960918,
-    -0.0016892018071151906,
-    0.9960033170269216
+    -1.2616918109095485,
+    1.1323607449067137,
+    1.1457137327541753,
+    -0.09661572862004991,
+    -0.00046954145175316534,
+    0.9958877593157901
   ],
-  "sign": 1.0,
+  "sign": -1.0,
   "sync": 0.9,
-  "source_scan": "arc22_office_20260830_121542_chest_phantom_manual_normal_extra_repeat",
-  "note": "fitted on static phantom sweep frames 41-111; 8-frame windows fit to ~0.3 px"
+  "median_reprojection_px": 2.414052736501133,
+  "source_scan": "arc22_office_20260830_121542_chest_phantom_manual_normal_extra_repeat"
 }

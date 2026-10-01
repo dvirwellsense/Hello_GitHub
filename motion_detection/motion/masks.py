@@ -1,6 +1,7 @@
 """Body / background masks.
 
-person_mask_seg  - pretrained person segmentation (YOLOv8-seg, COCO 'person'); works for any clothing.
+person_mask_seg  - pretrained person segmentation (YOLOv8m-seg, COCO 'person'); works for any clothing.
+                   The small 's' model missed or bloated the legs on the leg scan; 'm' is ~0.6 s/frame on 4 CPU cores.
 person_mask_color - HSV colour mask tuned to one volunteer (blue shirt + skin); kept for reference only.
 phantom_mask     - orange chest phantom.
 specular_mask    - bright, unsaturated highlights (they move with the camera, not with the surface).
@@ -11,7 +12,7 @@ import numpy as np
 _models = {}
 
 
-def person_mask_seg(img, weights='yolov8s-seg.pt', conf=0.25):
+def person_mask_seg(img, weights='yolov8m-seg.pt', conf=0.25):
     from ultralytics import YOLO  # heavy import, only when used
     if weights not in _models:
         _models[weights] = YOLO(weights)

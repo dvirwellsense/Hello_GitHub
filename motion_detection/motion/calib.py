@@ -34,4 +34,14 @@ class Calibration:
         """Raw 1280x720 pixel points -> normalized camera coordinates (x/z, y/z)."""
         q = np.asarray(pts, np.float64).reshape(-1, 1, 2) / 2.0
         q[..., 0] += self.x_offset
-        return cv2.undistortPoints(q, self.K, self.D).reshape(-1, 2)
+        # Default OpenCV iteration count (5) is not enough for this strong distortion near the borders.
+        crit = (cv2.TERM_CRITERIA_COUNT | cv2.TERM_CRITERIA_EPS, 100, 1e-10)
+        return cv2.undistortPoints(q, self.K, self.D, None, None, None, crit).reshape(-1, 2)
+
+    def distort_points(self, norm):
+        """Normalized camera coordinates -> raw 1280x720 pixels (inverse of undistort_points)."""
+        obj = np.c_[norm, np.ones(len(norm))].reshape(-1, 1, 3)
+        q, _ = cv2.projectPoints(obj, np.zeros(3), np.zeros(3), self.K, self.D)
+        q = q.reshape(-1, 2)
+        q[:, 0] -= self.x_offset
+        return q * 2.0

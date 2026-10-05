@@ -24,6 +24,12 @@ Example:
 """
 import argparse
 import csv
+import hashlib
+import json
+import platform
+import subprocess
+import sys
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -129,6 +135,7 @@ def main():
     ap.add_argument('--out', required=True, help='CSV with per-pair scores')
     ap.add_argument('--plot', help='optional PNG')
     ap.add_argument('--label', action='append', default=[], help='labelled motion range, e.g. 63-85 (plot only)')
+    ap.add_argument('--save-masks', help='folder: save the exact body mask used for every frame (PNG) + a preview overlay (JPG)')
     a = ap.parse_args()
     calib = Calibration(a.calib)
     a.mm_per_px = 1.0 / calib.pixels_per_mm
@@ -151,6 +158,8 @@ def main():
         body, spec = body_and_specular(a.mask, prev)
         if a.erode:
             body = cv2.erode(body, np.ones((a.erode, a.erode), np.uint8))
+        if a.save_masks:
+            save_mask(a.save_masks, int(scan.index[i - 1]), prev, body, spec, roi)
         r = evaluate_pair(prev, cur, scan.angle(i - 1, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi)
         H = r.pop('_H')
         if roi is not None:
@@ -161,7 +170,61 @@ def main():
     finish(decide(rows, a), a)
 
 
+def save_mask(folder, frame, img, body, spec, roi):
+    """Save what the scoring actually used for pairs starting at this frame.
+    body_<frame>.png: body mask after erosion (white = body).
+    used_<frame>.png: points counted = body, not specular, and inside the detector region.
+    view_<frame>.jpg: half-size preview; red = counted region, cyan = detector region outline."""
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    used = (body > 0) & (spec == 0)
+    polys = roi.outline() if roi is not None else []
+    if roi is not None:
+        region = np.zeros(body.shape, np.uint8)
+        cv2.fillPoly(region, polys, 255)
+        used &= region > 0
+    cv2.imwrite(str(folder / f'body_{frame:06d}.png'), body)
+    cv2.imwrite(str(folder / f'used_{frame:06d}.png'), used.astype(np.uint8) * 255)
+    v = img.copy()
+    v[used] = (0.45 * v[used] + np.array([0, 0, 140])).astype(np.uint8)
+    cv2.polylines(v, polys, True, (255, 255, 0), 2)
+    cv2.putText(v, f'frame {frame}', (16, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.1, (255, 255, 255), 3)
+    cv2.imwrite(str(folder / f'view_{frame:06d}.jpg'), cv2.resize(v, (640, 360)), [cv2.IMWRITE_JPEG_QUALITY, 85])
+
+
+def sha256(path):
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+    except OSError:
+        return None
+
+
+def run_settings(a):
+    """Everything needed to reproduce this run."""
+    import scipy
+    root = Path(__file__).resolve().parents[1]
+    try:
+        commit = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=root, capture_output=True, text=True).stdout.strip()
+        dirty = bool(subprocess.run(['git', 'status', '--porcelain', '--', '.'], cwd=root, capture_output=True, text=True).stdout.strip())
+    except OSError:
+        commit, dirty = None, None
+    versions = dict(python=platform.python_version(), opencv=cv2.__version__, numpy=np.__version__, scipy=scipy.__version__)
+    weights = None
+    if a.mask == 'seg':
+        import torch
+        import ultralytics
+        versions.update(ultralytics=ultralytics.__version__, torch=torch.__version__)
+        weights = 'yolov8m-seg.pt'
+    args = {k: v for k, v in vars(a).items() if k != 'mm_per_px'}
+    return dict(command=' '.join(sys.argv), args=args, git_commit=commit, git_dirty=dirty, versions=versions,
+                segmentation=dict(weights=weights, weights_sha256=sha256(weights) if weights else None,
+                                  conf=0.25, imgsz=960, rotate='90 clockwise') if weights else None,
+                calibration_sha256=sha256(a.calib), gantry_model=json.load(open(a.gantry)),
+                mm_per_px=a.mm_per_px)
+
+
 def finish(rows, a):
+    Path(a.out).with_suffix('.settings.json').write_text(json.dumps(run_settings(a), indent=2, ensure_ascii=False))
     with open(a.out, 'w', newline='') as fh:
         w = csv.DictWriter(fh, rows[0].keys())
         w.writeheader()

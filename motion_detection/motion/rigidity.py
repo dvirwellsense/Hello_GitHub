@@ -49,10 +49,14 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
     f = calib.focal_px
     u0, u1 = calib.undistort_points(p0), calib.undistort_points(p1)
     n0, n1 = u0 * f, u1 * f
-    # Background homography a -> b (normalized coords); used to carry the detector ROI from the home frame.
+    # Bed-plane homography a -> b (normalized coords); carries the detector ROI from the home frame.
+    # Only non-body points on the bed near the detector region: the floor is a different plane.
     H = None
-    if on_bg.sum() >= 8:
-        H, _ = cv2.findHomography(u0[on_bg], u1[on_bg], cv2.RANSAC, 1.0 / f)
+    on_bed = on_bg & roi.near(u0) if roi is not None else on_bg
+    if on_bed.sum() < 15:
+        on_bed = on_bg
+    if on_bed.sum() >= 8:
+        H, _ = cv2.findHomography(u0[on_bed], u1[on_bed], cv2.RANSAC, 1.0 / f)
     if roi is not None:
         on_body &= roi(u0)
     out = dict(_H=H, n_body=int(on_body.sum()), n_bg=int(on_bg.sum()),

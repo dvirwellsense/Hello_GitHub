@@ -95,12 +95,20 @@ def guard_flags(rows, a):
             |speed difference| x capture duration. That angle uncertainty (both frames of the pair) times
             the measured sensitivity of the residual to the angle (epi_sens_px_per_deg) is the expected
             residual error in px; the pair is unreliable if it exceeds --guard-px.
-    bg:     causal and direct: the median epipolar residual of the static background (epi_enc_bg) is a
-            measurement of the geometry error of this pair; unreliable if it exceeds --guard-bg-px.
+    bg:     median epipolar residual of ALL background points (epi_enc_bg) > --guard-bg-px. Dominated by
+            floor points and reflections; see results/background_study for why this is not recommended.
+    bed:    median residual of bed-PLANE points near the ROI (epi_bed_near, needs --bed) > --guard-bed-px.
+            Fewer than --min-bed such points -> the pair is INSUFFICIENT_DATA (reason 'background'),
+            never 'reliable'.
     none:   every pair reliable."""
     n = len(rows)
     flag = np.zeros(n, bool)
     if a.guard == 'none':
+        return flag
+    if a.guard == 'bed':
+        for k, r in enumerate(rows):
+            b = r.get('epi_bed_near', np.nan)
+            flag[k] = (not r['same_angle']) and np.isfinite(b) and b > a.guard_bed_px
         return flag
     if a.guard == 'bg':
         for k, r in enumerate(rows):
@@ -158,6 +166,9 @@ def decide(rows, a):
             score_mm = score * a.mm_per_px
             thr_hit = score > a.threshold
         valid = bool(np.isfinite(score))
+        reason = '' if valid else 'body'
+        if valid and a.guard == 'bed' and not r['same_angle'] and not (r.get('n_bed_near', 0) >= a.min_bed):
+            valid, reason = False, 'background'
         if not valid:
             state = 'INSUFFICIENT_DATA'
         elif thr_hit:
@@ -168,7 +179,8 @@ def decide(rows, a):
         run_c = run_c + 1 if (active and state == 'MOTION') else 0
         run_a = run_a + 1 if (active and state in ('MOTION', 'MOTION_UNRELIABLE')) else 0
         conf, anyy = run_c >= a.persistence, run_a >= a.persistence
-        r.update(motion_mm=float(score_mm), candidate_raw=bool(valid and thr_hit), accel_guard=bool(g), state=state,
+        r.update(motion_mm=float(score_mm), candidate_raw=bool(np.isfinite(score) and thr_hit), accel_guard=bool(g), state=state,
+                 insufficient_reason=reason,
                  alarm_confirmed=conf, alarm_any=anyy, alarm=conf if a.guard_action == 'drop' else anyy)
     return rows
 
@@ -208,8 +220,13 @@ def main():
                          '(quality relative to the body); masked_abs: same region, quality threshold of global')
     ap.add_argument('--body-fb-max', type=float, default=0.5, help='forward-backward limit (px) for body points')
     ap.add_argument('--body-masks', help='folder with body_<frame>.png from --save-masks: use these exact (already eroded) masks instead of segmentation')
-    ap.add_argument('--guard', choices=('legacy', 'time', 'bg', 'none'), default='legacy', help='angle-reliability test, see guard_flags()')
+    ap.add_argument('--guard', choices=('legacy', 'time', 'bg', 'bed', 'none'), default='legacy', help='angle-reliability test, see guard_flags()')
     ap.add_argument('--guard-bg-px', type=float, default=0.4, help='bg guard: background residual (px) above which a pair is unreliable')
+    ap.add_argument('--guard-bed-px', type=float, default=0.3, help='bed guard: bed-plane residual near the ROI (px)')
+    ap.add_argument('--min-bed', type=int, default=30, help='bed guard: minimum bed-plane points near the ROI')
+    ap.add_argument('--bed', help='bed outline PNG on the HOME frame (e.g. data/bed_home_arc22.png), carried by the bed homography')
+    ap.add_argument('--bed-near-px', type=float, default=150, help='"near the ROI" distance for the bed statistics (raw px)')
+    ap.add_argument('--roi-fixed', action='store_true', help='keep the detector ROI fixed in image coordinates (no homography)')
     ap.add_argument('--guard-px', type=float, default=0.25, help='time guard: expected residual error (px) above which a pair is unreliable')
     ap.add_argument('--guard-action', choices=('drop', 'mark'), default='drop',
                     help='drop: unreliable pairs cannot alarm (original); mark: they still alarm, reported as unreliable')
@@ -232,6 +249,11 @@ def main():
         roi = DetectorROI(a.detector_mask, calib)
     elif a.detector_rect:
         roi = DetectorROI.from_rect(tuple(int(v) for v in a.detector_rect.split(',')), calib)
+    bed = DetectorROI(a.bed, calib) if a.bed else None
+    near_fixed = None
+    if roi is not None and a.roi_fixed:
+        k = int(2 * a.bed_near_px + 1)
+        near_fixed = cv2.dilate(roi.mask.astype(np.uint8), cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0
     phase = scan.phases()
     exposure = scan.exposure_pairs()
     rows = []
@@ -248,16 +270,29 @@ def main():
             if a.erode:
                 body = cv2.erode(body, np.ones((a.erode, a.erode), np.uint8))
         region = None
-        if roi is not None and a.detect != 'global':
+        if roi is not None and a.roi_fixed:
+            region = roi.mask.astype(np.uint8) * 255
+        elif roi is not None and a.detect != 'global':
             region = np.zeros(body.shape, np.uint8)
             cv2.fillPoly(region, roi.outline(), 255)
+        near = None
+        if bed is not None and roi is not None:
+            if near_fixed is not None:
+                near = near_fixed
+            else:
+                reg = np.zeros(body.shape, np.uint8)
+                cv2.fillPoly(reg, roi.outline(), 255)
+                k = int(2 * a.bed_near_px + 1)
+                near = cv2.dilate(reg, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0
         if a.save_masks:
             save_mask(a.save_masks, int(scan.index[i - 1]), prev, body, spec, roi)
         r = evaluate_pair(prev, cur, scan.angle(i - 1, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi,
-                          detect_mode=a.detect, roi_region=region, body_fb_max=a.body_fb_max)
+                          detect_mode=a.detect, roi_region=region, body_fb_max=a.body_fb_max, bed=bed, bg_near=near)
         H = r.pop('_H')
-        if roi is not None:
+        if roi is not None and not a.roi_fixed:
             roi.advance(H)
+        if bed is not None:
+            bed.advance(H)
         rows.append(dict(frame=int(scan.index[i]), phase=phase[i], exposure=bool(exposure[i]),
                          angle=float(scan.angle(i, a.sync)), dangle=float(scan.angle(i, a.sync) - scan.angle(i - 1, a.sync)),
                          t_req_a=float(scan.time_s[i - 1]), t_sav_a=float(scan.saved_s[i - 1]),
@@ -323,8 +358,9 @@ def run_settings(a):
 
 def finish(rows, a):
     Path(a.out).with_suffix('.settings.json').write_text(json.dumps(run_settings(a), indent=2, ensure_ascii=False))
+    keys = list(dict.fromkeys(k for r in rows for k in r))  # union, first-seen order
     with open(a.out, 'w', newline='') as fh:
-        w = csv.DictWriter(fh, rows[0].keys())
+        w = csv.DictWriter(fh, keys, restval='')
         w.writeheader()
         w.writerows(rows)
     win = [r['frame'] for r in rows if r['exposure']]

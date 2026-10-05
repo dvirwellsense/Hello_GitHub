@@ -36,7 +36,7 @@ def static_cluster_score(pts, disp, k=30):
 
 def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry, bg_margin_px=81,
                   roi=None, same_angle_deg=0.02, detect_mode='global', roi_region=None, return_points=False,
-                  body_fb_max=0.5):
+                  body_fb_max=0.5, bed=None, bg_near=None):
     """All scores for one adjacent pair. body/specular are masks of frame a.
     Same-angle pairs (gantry stopped) are compared directly: any displacement is motion.
     roi: optional callable(normalized points of frame a) -> bool, the region above the detector.
@@ -47,7 +47,12 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
                  'masked_abs' = like 'masked' but with the absolute quality threshold of 'global': body
                  points no longer compete with the background for the 3000-point cap, but are not weaker.
     return_points: also return per-point arrays (for inspection).
-    body_fb_max: forward-backward limit (px) for BODY points (background points always use 0.5)."""
+    body_fb_max: forward-backward limit (px) for BODY points (background points always use 0.5).
+    bed: optional DetectorROI-like outline of the bed (normalized-point lookup, carried by the caller).
+         When given, background points are split into bed (on the bed plane) / offplane (inside the bed
+         outline, off the plane: reflections, cables) / floor, and the homography returned for carrying
+         the ROI and the bed outline is fitted on bed-plane points only.
+    bg_near: optional raw-pixel bool raster of frame a: "near the ROI" for the local bed statistics."""
     ga, gb = (cv2.cvtColor(x, cv2.COLOR_BGR2GRAY) for x in (img_a, img_b))
     p0 = detect(ga)
     p1, ok, fb = track(ga, gb, p0, return_fb=True)
@@ -78,11 +83,23 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
     # Bed-plane homography a -> b (normalized coords); carries the detector ROI from the home frame.
     # Only non-body points on the bed near the detector region: the floor is a different plane.
     H = None
-    on_bed = on_bg & roi.near(u0) if roi is not None else on_bg
-    if on_bed.sum() < 15:
-        on_bed = on_bg
-    if on_bed.sum() >= 8:
-        H, _ = cv2.findHomography(u0[on_bed], u1[on_bed], cv2.RANSAC, 1.0 / f)
+    bg_stats = {}
+    if bed is not None:
+        from .bed import classify_background
+        lab = np.full(len(u0), '', dtype=object)
+        lab[on_bg] = classify_background(u0[on_bg], u1[on_bg], bed(u0[on_bg]), 1.0 / f)
+        isbed = lab == 'bed'
+        if isbed.sum() >= 8:
+            H, _ = cv2.findHomography(u0[isbed], u1[isbed], cv2.RANSAC, 1.0 / f)
+        px, py = p0[:, 0].astype(int), p0[:, 1].astype(int)
+        near = np.ones(len(u0), bool) if bg_near is None else bg_near[py.clip(0, bg_near.shape[0] - 1), px.clip(0, bg_near.shape[1] - 1)]
+        bg_stats = dict(_lab=lab, _near=near)
+    else:
+        on_bed = on_bg & roi.near(u0) if roi is not None else on_bg
+        if on_bed.sum() < 15:
+            on_bed = on_bg
+        if on_bed.sum() >= 8:
+            H, _ = cv2.findHomography(u0[on_bed], u1[on_bed], cv2.RANSAC, 1.0 / f)
     if roi is not None:
         on_body &= roi(u0)
     out = dict(_H=H, n_body=int(on_body.sum()), n_bg=int(on_bg.sum()),
@@ -101,6 +118,19 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
                    static_cl=static_cluster_score(b0, d))
     else:
         out.update(static_med=np.nan, static_cl=np.nan)
+    if bg_stats and not out['same_angle']:
+        # background statistics are recorded even when the body has too few points
+        Kn0 = np.diag([1 / f, 1 / f, 1])
+        Fe0 = Kn0.T @ gantry.essential(angle_a, angle_b) @ Kn0
+        eb = epipolar_distance(Fe0, n0, n1)
+        lab, near = bg_stats['_lab'], bg_stats['_near']
+        for k in ('bed', 'offplane', 'floor'):
+            sel = lab == k
+            out[f'n_{k}'] = int(sel.sum())
+            out[f'epi_{k}'] = float(np.median(eb[sel])) if sel.any() else np.nan
+        sel = (lab == 'bed') & near
+        out['n_bed_near'] = int(sel.sum())
+        out['epi_bed_near'] = float(np.median(eb[sel])) if sel.any() else np.nan
     if len(b0) < 8 or out['same_angle']:
         out.update(affine_med=np.nan, affine_cl=np.nan, epi_img_med=np.nan, epi_img_cl=np.nan,
                    epi_enc_med=np.nan, epi_enc_cl=np.nan, epi_enc_cl30=np.nan, epi_enc_bg=np.nan,

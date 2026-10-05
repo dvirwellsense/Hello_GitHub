@@ -73,9 +73,16 @@ python scripts/evaluate_scan.py --scan <scan.zip|folder> \
 | `--body-fb-max` | 0.5 | מגבלת forward-backward לנקודות גוף |
 | `--guard` | legacy | `legacy`, `time`, `bg` או `none`. בדיקת אמינות הגאומטריה |
 | `--guard-action` | drop | `drop`: זוג לא אמין לא מתריע. `mark`: מתריע ומסומן כלא אמין |
+| `--bed`, `--min-bed`, `--guard-bed-px` | | בדיקת הגאומטריה לפי נקודות מישור המיטה ליד ה-ROI (`--guard bed`) |
+| `--roi-fixed` | | ROI קבוע בקואורדינטות התמונה |
 
-**מצבים:** בכל זוג נשמר `state`, שמבדיל בין תנועה, אין תנועה, תנועה לא אמינה ואין מספיק מידע. נשמרים גם
-הציון וה-`candidate_raw` לפני כל סינון. פירוט וניסויים ב-`results/experiments_2026_10/README.md`.
+**שני שיפוטים נפרדים לכל זוג:**
+- `motion_state`: `SUSPECT`, `NO_MOTION` או `NO_BODY_DATA`.
+- `geometry_state`: `VERIFIED`, `UNRELIABLE`, `BG_MISSING` או `NOT_CHECKED`.
+
+`label` הוא טקסט קריא, למשל "motion suspected; background missing for verification". `alarm_any` כולל כל חשד, גם בלי רקע לאימות. `alarm_confirmed` כולל רק חשד שהגאומטריה שלו אומתה.
+
+פירוט הניסויים: `results/experiments_2026_10/`, `results/background_study_2026_10/` ו-`results/bed_validation_2026_10/`.
 
 בכל הרצה נשמר ליד ה-CSV גם `<name>.settings.json`. הקובץ כולל את שורת הפקודה, כל הפרמטרים (גם ברירות
 המחדל), ה-commit, גרסאות הספריות, ה-hash של משקולות הסגמנטציה ושל קובץ הכיול, ואת מודל הקשת.
@@ -117,8 +124,8 @@ bash scripts/run_all.sh <scans_dir> [results] [masks]
 
 | סריקה | מה קרה | התרעות בחלון ההקרנה |
 |---|---|---|
-| A28_1 | תנועת חזה מכוונת בפריימים 63–85 | 62–86 |
-| | תנועת אגן (לא תויגה) | 106–110 |
+| A28_1 | תנועת חזה מכוונת; הטווח המתויג הוא 63–86 | 62–86 |
+| | התרעות מחוץ לטווח המתויג, **לא מאומתות** כתנועה | 106–110 |
 | A26 | תנועת יד קטנה, 3–5 מ"מ | 61, 68 |
 | רגליים, סטטי | | אין |
 | VC01 עצירת נשימה | | אין |

@@ -65,7 +65,7 @@ def plot(rows, path, a, labelled):
     ax[1].plot(f[al], m[al], 'x', ms=9, mew=2, color='#222', label='alarm')
     g = np.array([r.get('accel_guard', False) for r in rows], bool)
     ax[1].plot(f[g], m[g], 'o', ms=6, mfc='none', color='#999', label='angle unreliable')
-    ins = np.array([r.get('state') == 'INSUFFICIENT_DATA' and r['exposure'] for r in rows], bool)
+    ins = np.array([r.get('motion_state') == 'NO_BODY_DATA' and r['exposure'] for r in rows], bool)
     if ins.any():
         y0 = np.nanmin(m[np.isfinite(m)]) * 0.7 if np.isfinite(m).any() else 0.01
         ax[1].plot(f[ins], np.full(ins.sum(), y0), '|', ms=10, mew=2, color='#c0392b', label='insufficient data (<30 points)')
@@ -98,7 +98,7 @@ def guard_flags(rows, a):
     bg:     median epipolar residual of ALL background points (epi_enc_bg) > --guard-bg-px. Dominated by
             floor points and reflections; see results/background_study for why this is not recommended.
     bed:    median residual of bed-PLANE points near the ROI (epi_bed_near, needs --bed) > --guard-bed-px.
-            Fewer than --min-bed such points -> the pair is INSUFFICIENT_DATA (reason 'background'),
+            Fewer than --min-bed such points -> geometry_state BG_MISSING (cannot verify),
             never 'reliable'.
     none:   every pair reliable."""
     n = len(rows)
@@ -142,17 +142,35 @@ def guard_flags(rows, a):
     return flag
 
 
-def decide(rows, a):
-    """Per pair: raw candidate (before any filter), reliability, state, alarms.
+LABELS = {
+    ('SUSPECT', 'VERIFIED'): 'motion suspected; geometry verified by background',
+    ('SUSPECT', 'NOT_CHECKED'): 'motion suspected; geometry not checked',
+    ('SUSPECT', 'UNRELIABLE'): 'motion suspected; geometry unreliable',
+    ('SUSPECT', 'BG_MISSING'): 'motion suspected; background missing for verification',
+    ('NO_MOTION', 'VERIFIED'): 'no motion; geometry verified by background',
+    ('NO_MOTION', 'NOT_CHECKED'): 'no motion; geometry not checked',
+    ('NO_MOTION', 'UNRELIABLE'): 'no motion; geometry unreliable',
+    ('NO_MOTION', 'BG_MISSING'): 'no motion; background missing for verification',
+}
 
-    state: INSUFFICIENT_DATA  no valid score (fewer than 30 body points in the region, or no points)
-           MOTION             score above threshold, angle reliable
-           MOTION_UNRELIABLE  score above threshold, angle unreliable (suspicion kept, not cancelled)
-           NO_MOTION          score below threshold, angle reliable
-           NO_MOTION_UNRELIABLE score below threshold, angle unreliable
-    alarm_confirmed: persistence over MOTION inside the exposure window.
-    alarm_any:       persistence over MOTION or MOTION_UNRELIABLE.
-    alarm:           what the run reports: alarm_confirmed with --guard-action drop, alarm_any with mark."""
+
+def decide(rows, a):
+    """Two independent judgements per pair, then alarms.
+
+    motion_state   (from the body score only)
+        SUSPECT       score above threshold
+        NO_MOTION     score below threshold
+        NO_BODY_DATA  no valid score (fewer than 30 body points): insufficient information about motion
+    geometry_state (from the guard only; never changes motion_state)
+        VERIFIED      guard ran and the geometry of the pair is reliable
+        UNRELIABLE    guard flags the pair (angle step / background residual)
+        BG_MISSING    --guard bed and fewer than --min-bed bed points near the ROI: cannot verify
+        NOT_CHECKED   no guard (or gantry stopped)
+    state = 'motion_state/geometry_state'; label = readable text.
+    candidate_raw: score above threshold, before anything else.
+    alarm_confirmed: persistence over SUSPECT & (VERIFIED or NOT_CHECKED), inside the exposure window.
+    alarm_any:       persistence over SUSPECT whatever the geometry (unreliable and missing background included).
+    alarm:           alarm_confirmed with --guard-action drop, alarm_any with mark."""
     unreliable = guard_flags(rows, a)
     run_c = run_a = 0
     for r, g in zip(rows, unreliable):
@@ -160,27 +178,24 @@ def decide(rows, a):
             score = r['static_cl']
             score_mm = score * a.mm_per_px
             thr_hit = score_mm > a.static_threshold_mm
-            g = False
         else:
             score = r['epi_enc_cl30']
             score_mm = score * a.mm_per_px
             thr_hit = score > a.threshold
-        valid = bool(np.isfinite(score))
-        reason = '' if valid else 'body'
-        if valid and a.guard == 'bed' and not r['same_angle'] and not (r.get('n_bed_near', 0) >= a.min_bed):
-            valid, reason = False, 'background'
-        if not valid:
-            state = 'INSUFFICIENT_DATA'
-        elif thr_hit:
-            state = 'MOTION_UNRELIABLE' if g else 'MOTION'
+        motion = 'NO_BODY_DATA' if not np.isfinite(score) else ('SUSPECT' if thr_hit else 'NO_MOTION')
+        if r['same_angle'] or a.guard == 'none':
+            geom = 'NOT_CHECKED'
+        elif a.guard == 'bed' and not (r.get('n_bed_near', 0) >= a.min_bed):
+            geom = 'BG_MISSING'
         else:
-            state = 'NO_MOTION_UNRELIABLE' if g else 'NO_MOTION'
+            geom = 'UNRELIABLE' if g else 'VERIFIED'
         active = r['exposure'] or a.all_phases
-        run_c = run_c + 1 if (active and state == 'MOTION') else 0
-        run_a = run_a + 1 if (active and state in ('MOTION', 'MOTION_UNRELIABLE')) else 0
+        run_c = run_c + 1 if (active and motion == 'SUSPECT' and geom in ('VERIFIED', 'NOT_CHECKED')) else 0
+        run_a = run_a + 1 if (active and motion == 'SUSPECT') else 0
         conf, anyy = run_c >= a.persistence, run_a >= a.persistence
-        r.update(motion_mm=float(score_mm), candidate_raw=bool(np.isfinite(score) and thr_hit), accel_guard=bool(g), state=state,
-                 insufficient_reason=reason,
+        r.update(motion_mm=float(score_mm), candidate_raw=bool(motion == 'SUSPECT'), accel_guard=bool(geom == 'UNRELIABLE'),
+                 motion_state=motion, geometry_state=geom, state=f'{motion}/{geom}',
+                 label=LABELS.get((motion, geom), 'insufficient body data (fewer than 30 points)'),
                  alarm_confirmed=conf, alarm_any=anyy, alarm=conf if a.guard_action == 'drop' else anyy)
     return rows
 
@@ -367,8 +382,14 @@ def finish(rows, a):
     print(f'{len(rows)} pairs, exposure window frames {min(win) if win else None}-{max(win) if win else None}')
     print('alarm frames:', [r['frame'] for r in rows if r['alarm']])
     ex = [r for r in rows if r['exposure']]
-    counts = {k: sum(r['state'] == k for r in ex) for k in ('MOTION', 'MOTION_UNRELIABLE', 'NO_MOTION', 'NO_MOTION_UNRELIABLE', 'INSUFFICIENT_DATA')}
-    print('exposure-window states:', counts)
+    from collections import Counter
+    print('exposure-window motion_state:', dict(Counter(r['motion_state'] for r in ex)))
+    print('exposure-window geometry_state:', dict(Counter(r['geometry_state'] for r in ex)))
+    for key, text in (('SUSPECT/UNRELIABLE', 'motion suspected - geometry unreliable'),
+                      ('SUSPECT/BG_MISSING', 'motion suspected - background missing for verification')):
+        fr = [r['frame'] for r in ex if r['state'] == key]
+        if fr:
+            print(f'{text}: {fr}')
     if a.plot:
         plot(rows, a.plot, a, [tuple(map(int, s.split('-'))) for s in a.label])
 

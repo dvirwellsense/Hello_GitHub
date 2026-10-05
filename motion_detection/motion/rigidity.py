@@ -35,17 +35,43 @@ def static_cluster_score(pts, disp, k=30):
 
 
 def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry, bg_margin_px=81,
-                  roi=None, same_angle_deg=0.02):
+                  roi=None, same_angle_deg=0.02, detect_mode='global', roi_region=None, return_points=False,
+                  body_fb_max=0.5):
     """All scores for one adjacent pair. body/specular are masks of frame a.
     Same-angle pairs (gantry stopped) are compared directly: any displacement is motion.
-    roi: optional callable(normalized points of frame a) -> bool, the region above the detector."""
+    roi: optional callable(normalized points of frame a) -> bool, the region above the detector.
+    detect_mode: 'global' = corners detected on the whole image, then filtered to body/ROI (original).
+                 'masked' = background points as in 'global'; body points detected separately inside
+                 body & not-specular & roi_region (raster of the ROI in frame a), so the corner-quality
+                 threshold is relative to the body itself and not to the strongest corner in the image.
+                 'masked_abs' = like 'masked' but with the absolute quality threshold of 'global': body
+                 points no longer compete with the background for the 3000-point cap, but are not weaker.
+    return_points: also return per-point arrays (for inspection).
+    body_fb_max: forward-backward limit (px) for BODY points (background points always use 0.5)."""
     ga, gb = (cv2.cvtColor(x, cv2.COLOR_BGR2GRAY) for x in (img_a, img_b))
     p0 = detect(ga)
-    p1, ok = track(ga, gb, p0)
-    p0, p1 = p0[ok], p1[ok]
+    p1, ok, fb = track(ga, gb, p0, return_fb=True)
+    p0, p1, fb = p0[ok], p1[ok], fb[ok]
     xi, yi = p0[:, 0].astype(int), p0[:, 1].astype(int)
     on_body = (body[yi, xi] > 0) & (specular[yi, xi] == 0)
     on_bg = cv2.dilate(body, np.ones((bg_margin_px, bg_margin_px), np.uint8))[yi, xi] == 0
+    n_detected_body = None
+    if detect_mode in ('masked', 'masked_abs'):
+        m = ((body > 0) & (specular == 0)).astype(np.uint8) * 255
+        if roi_region is not None:
+            m &= roi_region
+        q0 = detect(ga, mask=m, absolute_quality=(detect_mode == 'masked_abs'))
+        n_detected_body = len(q0)
+        q1, qok, qfb = track(ga, gb, q0, return_fb=True)
+        q0, q1, qfb = q0[qok], q1[qok], qfb[qok]
+        keep = ~on_body  # background points stay exactly as in 'global'
+        p0, p1, fb = np.vstack([p0[keep], q0]), np.vstack([p1[keep], q1]), np.r_[fb[keep], qfb]
+        on_bg = np.r_[on_bg[keep], np.zeros(len(q0), bool)]
+        on_body = np.r_[np.zeros(keep.sum(), bool), np.ones(len(q0), bool)]
+    elif detect_mode != 'global':  # pragma: no cover
+        raise ValueError(detect_mode)
+    if body_fb_max < 0.5:
+        on_body &= fb < body_fb_max
     f = calib.focal_px
     u0, u1 = calib.undistort_points(p0), calib.undistort_points(p1)
     n0, n1 = u0 * f, u1 * f
@@ -60,6 +86,9 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
     if roi is not None:
         on_body &= roi(u0)
     out = dict(_H=H, n_body=int(on_body.sum()), n_bg=int(on_bg.sum()),
+               n_body_detected=n_detected_body if n_detected_body is not None else np.nan,
+               fb_med_body=float(np.median(fb[on_body])) if on_body.any() else np.nan,
+               fb_p90_body=float(np.percentile(fb[on_body], 90)) if on_body.any() else np.nan,
                body_flow=float(np.median(np.linalg.norm(n1[on_body] - n0[on_body], axis=1))) if on_body.any() else np.nan)
     b0, b1 = n0[on_body], n1[on_body]
     out['same_angle'] = bool(abs(angle_b - angle_a) < same_angle_deg)
@@ -74,8 +103,9 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
         out.update(static_med=np.nan, static_cl=np.nan)
     if len(b0) < 8 or out['same_angle']:
         out.update(affine_med=np.nan, affine_cl=np.nan, epi_img_med=np.nan, epi_img_cl=np.nan,
-                   epi_enc_med=np.nan, epi_enc_cl=np.nan, epi_enc_cl30=np.nan, epi_enc_bg=np.nan)
-        return out
+                   epi_enc_med=np.nan, epi_enc_cl=np.nan, epi_enc_cl30=np.nan, epi_enc_bg=np.nan,
+                   epi_sens_px_per_deg=np.nan)
+        return (out, None) if return_points else out
 
     # Current method: 2D similarity estimated on background, applied to the body.
     A, _ = cv2.estimateAffinePartial2D(n0[on_bg], n1[on_bg], method=cv2.RANSAC, ransacReprojThreshold=1.0)
@@ -91,6 +121,13 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
     Kn = np.diag([1 / f, 1 / f, 1])
     Fe = Kn.T @ gantry.essential(angle_a, angle_b) @ Kn
     e = epipolar_distance(Fe, b0, b1)
+    # Sensitivity of the residual to an error in the angle of frame b (px per degree): how much a
+    # timing/encoder error would move the score.
+    Fp = Kn.T @ gantry.essential(angle_a, angle_b + 0.05) @ Kn
+    sens = float(np.median(np.abs(epipolar_distance(Fp, b0, b1) - e)) / 0.05)
     out.update(epi_enc_med=float(np.median(e)), epi_enc_cl=cluster_score(b0, e), epi_enc_cl30=cluster_score(b0, e, 30),
-               epi_enc_bg=float(np.median(epipolar_distance(Fe, n0[on_bg], n1[on_bg]))))
+               epi_enc_bg=float(np.median(epipolar_distance(Fe, n0[on_bg], n1[on_bg]))), epi_sens_px_per_deg=sens)
+    if return_points:
+        return out, dict(p0=p0[on_body], p1=p1[on_body], fb=fb[on_body], n0=b0, n1=b1, e=e, Fe=Fe,
+                         bg_p0=p0[on_bg], bg_n0=n0[on_bg], bg_e=epipolar_distance(Fe, n0[on_bg], n1[on_bg]))
     return out

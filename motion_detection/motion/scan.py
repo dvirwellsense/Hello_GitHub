@@ -30,7 +30,9 @@ class Scan:
         self.angle_before = np.array([float(r['arm_angle_before_capture']) for r in rows])
         self.angle_after = np.array([float(r['arm_angle_after_capture']) for r in rows])
         t = np.array([np.datetime64(r['capture_request_utc'][:23]) for r in rows])
-        self.time_s = (t - t[0]) / np.timedelta64(1, 'ms') / 1000.0
+        self.time_s = (t - t[0]) / np.timedelta64(1, 'ms') / 1000.0          # capture request (angle_before read)
+        ts = np.array([np.datetime64(r['image_saved_utc'][:23]) for r in rows])
+        self.saved_s = (ts - t[0]) / np.timedelta64(1, 'ms') / 1000.0        # image saved (angle_after read)
 
     def __len__(self):
         return len(self.files)

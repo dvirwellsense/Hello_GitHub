@@ -1,0 +1,46 @@
+{
+  "frame": 109,
+  "score": 0.3768353279891445,
+  "csv_score": 0.3768353279891445,
+  "n_body": 567,
+  "cluster": {
+    "n": 30,
+    "residual_median": 0.3768353279891445,
+    "win_range_median": 0.09971012340481956,
+    "e_win7_median": 0.36536371201206275,
+    "e_win21_median": 0.376835327989157,
+    "e_win31_median": 0.3423935618006792,
+    "sub_along_spread_median": 0.32368602888458936,
+    "sub_perp_spread_median": 0.27197057025931026,
+    "ncc_median": 0.8544813503178332,
+    "lk_err_median": 5.159934759140015,
+    "fb_median": 0.010434381198137999
+  },
+  "control": {
+    "n": 30,
+    "residual_median": 0.004902431483399817,
+    "win_range_median": 0.040334488717474686,
+    "e_win7_median": 0.02020503747393026,
+    "e_win21_median": 0.004902431483398275,
+    "e_win31_median": 0.024751872858703738,
+    "sub_along_spread_median": 0.31585846524950023,
+    "sub_perp_spread_median": 0.11338745078255327,
+    "ncc_median": 0.9521904909581911,
+    "lk_err_median": 6.9823198318481445,
+    "fb_median": 0.0090022929944098
+  },
+  "bed_near_cluster": {
+    "n": 89,
+    "median": 0.5880240976692914,
+    "p90": 0.7974702577335743
+  },
+  "bed_near_control": {
+    "n": 0,
+    "median": NaN,
+    "p90": NaN
+  },
+  "bed_all": {
+    "n": 889,
+    "median": 0.23570925294588135
+  }
+}

@@ -5,21 +5,37 @@ import numpy as np
 LK = dict(winSize=(21, 21), maxLevel=4, criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 50, 0.01))
 
 
-def detect(gray, max_points=3000, mask=None, min_distance=7):
-    p = cv2.goodFeaturesToTrack(gray, max_points, 0.005, min_distance, mask=mask)
+QUALITY = 0.005
+
+
+def detect(gray, max_points=3000, mask=None, min_distance=7, absolute_quality=False):
+    """Shi-Tomasi corners. The quality threshold is QUALITY x the strongest corner inside the mask.
+    absolute_quality=True keeps the threshold of an unmasked detection on the whole image (QUALITY x the
+    strongest corner of the image), so a mask only changes WHERE points may be, not how weak they may be."""
+    q = QUALITY
+    if absolute_quality and mask is not None:
+        eig = cv2.cornerMinEigenVal(gray, 3, 3)
+        inside = eig[mask > 0]
+        if inside.size == 0 or inside.max() <= 0:
+            return np.zeros((0, 2), np.float32)
+        q = min(1.0, QUALITY * float(eig.max()) / float(inside.max()))
+    p = cv2.goodFeaturesToTrack(gray, max_points, q, min_distance, mask=mask)
     return np.zeros((0, 2), np.float32) if p is None else p.reshape(-1, 2)
 
 
-def track(g0, g1, p0, fb_max_px=0.5, max_level=4):
-    """Track points g0 -> g1. Returns (p1, ok) where ok passes status and forward-backward checks."""
+def track(g0, g1, p0, fb_max_px=0.5, max_level=4, win=21, return_fb=False):
+    """Track points g0 -> g1. Returns (p1, ok[, fb]) where ok passes status and forward-backward checks
+    and fb is the forward-backward error (px) of every point."""
     if len(p0) == 0:
-        return p0.copy(), np.zeros(0, bool)
-    lk = dict(LK, maxLevel=max_level)
+        return (p0.copy(), np.zeros(0, bool), np.zeros(0)) if return_fb else (p0.copy(), np.zeros(0, bool))
+    lk = dict(LK, maxLevel=max_level, winSize=(win, win))
     p0 = np.float32(p0).reshape(-1, 1, 2)
     p1, s, _ = cv2.calcOpticalFlowPyrLK(g0, g1, p0, None, **lk)
     pb, sb, _ = cv2.calcOpticalFlowPyrLK(g1, g0, p1, None, **lk)
     fb = np.linalg.norm((pb - p0).reshape(-1, 2), axis=1)
     ok = (s.ravel() == 1) & (sb.ravel() == 1) & (fb < fb_max_px)
+    if return_fb:
+        return p1.reshape(-1, 2), ok, fb
     return p1.reshape(-1, 2), ok
 
 

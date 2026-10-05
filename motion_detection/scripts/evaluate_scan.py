@@ -64,7 +64,11 @@ def plot(rows, path, a, labelled):
     al = np.array([r['alarm'] for r in rows])
     ax[1].plot(f[al], m[al], 'x', ms=9, mew=2, color='#222', label='alarm')
     g = np.array([r.get('accel_guard', False) for r in rows], bool)
-    ax[1].plot(f[g], m[g], 'o', ms=6, mfc='none', color='#999', label='skipped (gantry accelerating)')
+    ax[1].plot(f[g], m[g], 'o', ms=6, mfc='none', color='#999', label='angle unreliable')
+    ins = np.array([r.get('state') == 'INSUFFICIENT_DATA' and r['exposure'] for r in rows], bool)
+    if ins.any():
+        y0 = np.nanmin(m[np.isfinite(m)]) * 0.7 if np.isfinite(m).any() else 0.01
+        ax[1].plot(f[ins], np.full(ins.sum(), y0), '|', ms=10, mew=2, color='#c0392b', label='insufficient data (<30 points)')
     ax[1].axhline(a.threshold * a.mm_per_px, color='#2a78d6', lw=1, ls='--')
     ax[1].axhline(a.static_threshold_mm, color='#eb6834', lw=1, ls='--')
     ax[1].set_yscale('log')
@@ -80,23 +84,92 @@ def plot(rows, path, a, labelled):
     plt.savefig(path, dpi=130)
 
 
+def guard_flags(rows, a):
+    """Reliability of each moving pair with respect to the gantry angle (True = unreliable).
+
+    legacy: |change of angle step between neighbouring pairs| > 30% of the step. Uses angle steps only
+            (no time) and also looks at the NEXT pair, so it is not causal.
+    time:   causal. For each frame the gantry speed during its capture (angle_before -> angle_after over
+            request -> saved time) is compared with the speed over the previous request interval. If the
+            speed changes, the linear interpolation that assigns an angle to the image is wrong by about
+            |speed difference| x capture duration. That angle uncertainty (both frames of the pair) times
+            the measured sensitivity of the residual to the angle (epi_sens_px_per_deg) is the expected
+            residual error in px; the pair is unreliable if it exceeds --guard-px.
+    bg:     causal and direct: the median epipolar residual of the static background (epi_enc_bg) is a
+            measurement of the geometry error of this pair; unreliable if it exceeds --guard-bg-px.
+    none:   every pair reliable."""
+    n = len(rows)
+    flag = np.zeros(n, bool)
+    if a.guard == 'none':
+        return flag
+    if a.guard == 'bg':
+        for k, r in enumerate(rows):
+            b = r.get('epi_enc_bg', np.nan)
+            flag[k] = (not r['same_angle']) and np.isfinite(b) and b > a.guard_bg_px
+        return flag
+    if a.guard == 'legacy':
+        d = np.array([r['dangle'] for r in rows], float)
+        jump = np.abs(np.diff(d)) > 0.3 * np.maximum(np.abs(d[1:]), np.abs(d[:-1]))
+        return np.r_[False, jump] | np.r_[jump, False]
+
+    def unc(t_req, t_sav, a_bef, a_aft, t_req_prev, a_bef_prev):
+        T = t_sav - t_req
+        w_cap = (a_aft - a_bef) / T if T > 0 else 0.0
+        dt = t_req - t_req_prev
+        if not np.isfinite(t_req_prev) or dt <= 0:
+            return abs(a_aft - a_bef)  # no history: assume the full in-capture change is uncertain
+        w_int = (a_bef - a_bef_prev) / dt
+        return abs(w_cap - w_int) * T
+
+    prev_req, prev_bef = np.nan, np.nan  # request time / angle_before of the frame before frame a
+    for k, r in enumerate(rows):
+        ua = unc(r['t_req_a'], r['t_sav_a'], r['ab_a'], r['aa_a'], prev_req, prev_bef)
+        ub = unc(r['t_req_b'], r['t_sav_b'], r['ab_b'], r['aa_b'], r['t_req_a'], r['ab_a'])
+        u = float(np.hypot(ua, ub))
+        sens = r.get('epi_sens_px_per_deg', np.nan)
+        expected = u * sens if np.isfinite(sens) else 0.0
+        r.update(angle_unc_deg=u, expected_err_px=float(expected))
+        flag[k] = (not r['same_angle']) and expected > a.guard_px
+        prev_req, prev_bef = r['t_req_a'], r['ab_a']
+    return flag
+
+
 def decide(rows, a):
-    """Apply acceleration guard, thresholds and persistence. Adds motion_mm, accel_guard, alarm."""
-    d = np.array([r['dangle'] for r in rows], float)
-    jump = np.abs(np.diff(d)) > 0.3 * np.maximum(np.abs(d[1:]), np.abs(d[:-1]))
-    guard = np.r_[False, jump] | np.r_[jump, False]
-    run = 0
-    for r, g in zip(rows, guard):
+    """Per pair: raw candidate (before any filter), reliability, state, alarms.
+
+    state: INSUFFICIENT_DATA  no valid score (fewer than 30 body points in the region, or no points)
+           MOTION             score above threshold, angle reliable
+           MOTION_UNRELIABLE  score above threshold, angle unreliable (suspicion kept, not cancelled)
+           NO_MOTION          score below threshold, angle reliable
+           NO_MOTION_UNRELIABLE score below threshold, angle unreliable
+    alarm_confirmed: persistence over MOTION inside the exposure window.
+    alarm_any:       persistence over MOTION or MOTION_UNRELIABLE.
+    alarm:           what the run reports: alarm_confirmed with --guard-action drop, alarm_any with mark."""
+    unreliable = guard_flags(rows, a)
+    run_c = run_a = 0
+    for r, g in zip(rows, unreliable):
         if r['same_angle']:
-            score_mm = r['static_cl'] * a.mm_per_px
-            candidate = score_mm > a.static_threshold_mm
+            score = r['static_cl']
+            score_mm = score * a.mm_per_px
+            thr_hit = score_mm > a.static_threshold_mm
             g = False
         else:
-            score_mm = r['epi_enc_cl30'] * a.mm_per_px
-            candidate = r['epi_enc_cl30'] > a.threshold and not g
+            score = r['epi_enc_cl30']
+            score_mm = score * a.mm_per_px
+            thr_hit = score > a.threshold
+        valid = bool(np.isfinite(score))
+        if not valid:
+            state = 'INSUFFICIENT_DATA'
+        elif thr_hit:
+            state = 'MOTION_UNRELIABLE' if g else 'MOTION'
+        else:
+            state = 'NO_MOTION_UNRELIABLE' if g else 'NO_MOTION'
         active = r['exposure'] or a.all_phases
-        run = run + 1 if (candidate and active) else 0
-        r.update(motion_mm=float(score_mm), accel_guard=bool(g), alarm=run >= a.persistence)
+        run_c = run_c + 1 if (active and state == 'MOTION') else 0
+        run_a = run_a + 1 if (active and state in ('MOTION', 'MOTION_UNRELIABLE')) else 0
+        conf, anyy = run_c >= a.persistence, run_a >= a.persistence
+        r.update(motion_mm=float(score_mm), candidate_raw=bool(valid and thr_hit), accel_guard=bool(g), state=state,
+                 alarm_confirmed=conf, alarm_any=anyy, alarm=conf if a.guard_action == 'drop' else anyy)
     return rows
 
 
@@ -130,6 +203,16 @@ def main():
     ap.add_argument('--threshold', type=float, default=0.5, help='gantry moving: epi_enc_cl30, px (0.5 px ~ 1.1 mm)')
     ap.add_argument('--static-threshold-mm', type=float, default=0.5, help='gantry stopped: displacement, mm')
     ap.add_argument('--persistence', type=int, default=1)
+    ap.add_argument('--detect', choices=('global', 'masked', 'masked_abs'), default='global',
+                    help='global: corners on the whole image then filtered; masked: body corners detected inside body & ROI '
+                         '(quality relative to the body); masked_abs: same region, quality threshold of global')
+    ap.add_argument('--body-fb-max', type=float, default=0.5, help='forward-backward limit (px) for body points')
+    ap.add_argument('--body-masks', help='folder with body_<frame>.png from --save-masks: use these exact (already eroded) masks instead of segmentation')
+    ap.add_argument('--guard', choices=('legacy', 'time', 'bg', 'none'), default='legacy', help='angle-reliability test, see guard_flags()')
+    ap.add_argument('--guard-bg-px', type=float, default=0.4, help='bg guard: background residual (px) above which a pair is unreliable')
+    ap.add_argument('--guard-px', type=float, default=0.25, help='time guard: expected residual error (px) above which a pair is unreliable')
+    ap.add_argument('--guard-action', choices=('drop', 'mark'), default='drop',
+                    help='drop: unreliable pairs cannot alarm (original); mark: they still alarm, reported as unreliable')
     ap.add_argument('--all-phases', action='store_true', help='also alarm during approach / return')
     ap.add_argument('--sync', type=float, default=0.9)
     ap.add_argument('--out', required=True, help='CSV with per-pair scores')
@@ -155,17 +238,32 @@ def main():
     prev = scan.image(0)
     for i in range(1, len(scan)):
         cur = scan.image(i)
-        body, spec = body_and_specular(a.mask, prev)
-        if a.erode:
-            body = cv2.erode(body, np.ones((a.erode, a.erode), np.uint8))
+        if a.body_masks:
+            body = cv2.imread(str(Path(a.body_masks) / f'body_{int(scan.index[i - 1]):06d}.png'), cv2.IMREAD_GRAYSCALE)
+            if body is None:
+                raise FileNotFoundError(f'body mask for frame {int(scan.index[i - 1])} in {a.body_masks}')
+            spec = np.zeros_like(body)
+        else:
+            body, spec = body_and_specular(a.mask, prev)
+            if a.erode:
+                body = cv2.erode(body, np.ones((a.erode, a.erode), np.uint8))
+        region = None
+        if roi is not None and a.detect != 'global':
+            region = np.zeros(body.shape, np.uint8)
+            cv2.fillPoly(region, roi.outline(), 255)
         if a.save_masks:
             save_mask(a.save_masks, int(scan.index[i - 1]), prev, body, spec, roi)
-        r = evaluate_pair(prev, cur, scan.angle(i - 1, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi)
+        r = evaluate_pair(prev, cur, scan.angle(i - 1, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi,
+                          detect_mode=a.detect, roi_region=region, body_fb_max=a.body_fb_max)
         H = r.pop('_H')
         if roi is not None:
             roi.advance(H)
         rows.append(dict(frame=int(scan.index[i]), phase=phase[i], exposure=bool(exposure[i]),
-                         angle=float(scan.angle(i, a.sync)), dangle=float(scan.angle(i, a.sync) - scan.angle(i - 1, a.sync)), **r))
+                         angle=float(scan.angle(i, a.sync)), dangle=float(scan.angle(i, a.sync) - scan.angle(i - 1, a.sync)),
+                         t_req_a=float(scan.time_s[i - 1]), t_sav_a=float(scan.saved_s[i - 1]),
+                         ab_a=float(scan.angle_before[i - 1]), aa_a=float(scan.angle_after[i - 1]),
+                         t_req_b=float(scan.time_s[i]), t_sav_b=float(scan.saved_s[i]),
+                         ab_b=float(scan.angle_before[i]), aa_b=float(scan.angle_after[i]), **r))
         prev = cur
     finish(decide(rows, a), a)
 
@@ -232,6 +330,9 @@ def finish(rows, a):
     win = [r['frame'] for r in rows if r['exposure']]
     print(f'{len(rows)} pairs, exposure window frames {min(win) if win else None}-{max(win) if win else None}')
     print('alarm frames:', [r['frame'] for r in rows if r['alarm']])
+    ex = [r for r in rows if r['exposure']]
+    counts = {k: sum(r['state'] == k for r in ex) for k in ('MOTION', 'MOTION_UNRELIABLE', 'NO_MOTION', 'NO_MOTION_UNRELIABLE', 'INSUFFICIENT_DATA')}
+    print('exposure-window states:', counts)
     if a.plot:
         plot(rows, a.plot, a, [tuple(map(int, s.split('-'))) for s in a.label])
 

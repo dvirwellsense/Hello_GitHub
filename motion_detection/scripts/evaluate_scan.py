@@ -224,6 +224,8 @@ def main():
     ap.add_argument('--calib', required=True)
     ap.add_argument('--gantry', required=True)
     ap.add_argument('--mask', choices=('seg', 'color', 'phantom'), default='seg')
+    ap.add_argument('--seg-select', choices=('top', 'union'), default='top', help='person masks: most confident only, or union of all')
+    ap.add_argument('--seg-conf', type=float, default=0.25, help='minimum person confidence for segmentation')
     ap.add_argument('--erode', type=int, default=21, help='erode body mask (px) to drop silhouette-edge points')
     ap.add_argument('--detector-mask', help='PNG on the HOME frame (1280x720), white = above the detector')
     ap.add_argument('--detector-rect', help='x,y,w,h on the HOME frame, instead of --detector-mask')
@@ -254,6 +256,8 @@ def main():
     a = ap.parse_args()
     calib = Calibration(a.calib)
     a.mm_per_px = 1.0 / calib.pixels_per_mm
+    import motion.masks as _masks
+    _masks.SEG_SELECT, _masks.SEG_CONF = a.seg_select, a.seg_conf
     if a.from_csv:
         rows = decide(read_csv(a.from_csv), a)
         finish(rows, a)
@@ -366,7 +370,7 @@ def run_settings(a):
     args = {k: v for k, v in vars(a).items() if k != 'mm_per_px'}
     return dict(command=' '.join(sys.argv), args=args, git_commit=commit, git_dirty=dirty, versions=versions,
                 segmentation=dict(weights=weights, weights_sha256=sha256(weights) if weights else None,
-                                  conf=0.25, imgsz=960, rotate='90 clockwise') if weights else None,
+                                  conf=a.seg_conf, select=a.seg_select, imgsz=960, rotate='90 clockwise') if weights else None,
                 calibration_sha256=sha256(a.calib), gantry_model=json.load(open(a.gantry)),
                 mm_per_px=a.mm_per_px)
 

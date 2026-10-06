@@ -12,7 +12,13 @@ import numpy as np
 _models = {}
 
 
-def person_mask_seg(img, weights='yolov8m-seg.pt', conf=0.25):
+SEG_SELECT = 'top'   # 'top': most confident person only (original); 'union': all person masks with conf >= SEG_CONF
+SEG_CONF = 0.25
+
+
+def person_mask_seg(img, weights='yolov8m-seg.pt', conf=None, select=None):
+    conf = SEG_CONF if conf is None else conf
+    select = SEG_SELECT if select is None else select
     from ultralytics import YOLO  # heavy import, only when used
     if weights not in _models:
         _models[weights] = YOLO(weights)
@@ -21,8 +27,13 @@ def person_mask_seg(img, weights='yolov8m-seg.pt', conf=0.25):
     r = _models[weights].predict(rot, classes=[0], conf=conf, imgsz=960, retina_masks=True, verbose=False)[0]
     m = np.zeros(rot.shape[:2], np.uint8)
     if r.masks is not None and len(r.masks):
-        k = int(np.argmax(r.boxes.conf.cpu().numpy()))
-        m = (r.masks.data[k].cpu().numpy() > 0.5).astype(np.uint8) * 255
+        if select == 'union':
+            # legs-only views: the person is often split into several low-confidence detections
+            # (and the most confident one can be a single shoe)
+            m = (r.masks.data.cpu().numpy() > 0.5).any(axis=0).astype(np.uint8) * 255
+        else:
+            k = int(np.argmax(r.boxes.conf.cpu().numpy()))
+            m = (r.masks.data[k].cpu().numpy() > 0.5).astype(np.uint8) * 255
         m = cv2.resize(m, (rot.shape[1], rot.shape[0]), interpolation=cv2.INTER_NEAREST)
     return cv2.rotate(m, cv2.ROTATE_90_COUNTERCLOCKWISE)
 

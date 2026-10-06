@@ -1,0 +1,22 @@
+negatives: static scans + confirmed pauses + unlabelled pairs more than 2 pairs from any label
+k   n_neg  median  p95   max   | thr=max_neg: moving detected (A30+A44, n=32) | at 0.5: moving, false alarms
+8   512    0.14   0.37  4.68  | 5/32 (16%)   | 32/32, FA 13/512
+12  510    0.11   0.30  0.63  | 32/32 (100%)   | 32/32, FA 4/510
+16  506    0.10   0.25  0.55  | 32/32 (100%)   | 32/32, FA 2/506
+20  505    0.09   0.22  0.55  | 31/32 (97%)   | 31/32, FA 2/505
+30  503    0.08   0.18  0.53  | 28/32 (88%)   | 29/32, FA 2/503
+45  500    0.07   0.15  0.50  | 25/32 (78%)   | 25/32, FA 1/500
+
+A44 pairs 67, 70, 71 (verified moving, missed at k=30):
+  k=8   [6.48, 2.13, 8.98]
+  k=12  [6.37, 2.09, 5.21]
+  k=16  [6.26, 1.09, 2.56]
+  k=20  [5.61, 1.74, 0.34]
+  k=30  [0.19, 0.33, 0.2]
+  k=45  [0.14, 0.2, 0.2]
+
+Labelled sets (pauses not checked): fraction above the zero-false-alarm threshold of each k
+  A08    k8: 2/13  k12: 12/13  k16: 13/13  k20: 13/13  k30: 13/13  k45: 13/13
+  A12    k8: 0/5  k12: 5/5  k16: 5/5  k20: 5/5  k30: 5/5  k45: 5/5
+  A26    k8: 0/10  k12: 4/10  k16: 4/10  k20: 4/10  k30: 3/10  k45: 3/10
+  A28_1  k8: 12/24  k12: 24/24  k16: 24/24  k20: 24/24  k30: 23/23  k45: 21/21

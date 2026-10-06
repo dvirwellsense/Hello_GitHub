@@ -1,0 +1,70 @@
+{
+  "command": "scripts/evaluate_scan.py --scan /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/scans/arc22_office_20260830_142447_volunteer_both_legs_manual_normal_static_repea --calib data/CalibrationResult_arc22.json --gantry data/gantry_arc22.json --detector-mask data/roi_arc22_calibrated.png --roi-fixed --bed data/bed_home_arc22.png --detect masked_abs --body-fb-max 0.1 --guard bed --guard-action mark --seg-select union --seg-conf 0.1 --save-masks /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/masks_union_old/legs_static --out results/union_check_2026_10/legs_static_E3u.csv",
+  "args": {
+    "scan": "/tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/scans/arc22_office_20260830_142447_volunteer_both_legs_manual_normal_static_repea",
+    "from_csv": null,
+    "calib": "data/CalibrationResult_arc22.json",
+    "gantry": "data/gantry_arc22.json",
+    "mask": "seg",
+    "seg_select": "union",
+    "seg_conf": 0.1,
+    "erode": 21,
+    "detector_mask": "data/roi_arc22_calibrated.png",
+    "detector_rect": null,
+    "threshold": 0.5,
+    "static_threshold_mm": 0.5,
+    "persistence": 1,
+    "detect": "masked_abs",
+    "body_fb_max": 0.1,
+    "body_masks": null,
+    "guard": "bed",
+    "guard_bg_px": 0.4,
+    "guard_bed_px": 0.3,
+    "min_bed": 30,
+    "bed": "data/bed_home_arc22.png",
+    "bed_near_px": 150,
+    "roi_fixed": true,
+    "guard_px": 0.25,
+    "guard_action": "mark",
+    "all_phases": false,
+    "sync": 0.9,
+    "out": "results/union_check_2026_10/legs_static_E3u.csv",
+    "plot": null,
+    "label": [],
+    "save_masks": "/tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/masks_union_old/legs_static"
+  },
+  "git_commit": "4e9c4dd",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.11.15",
+    "opencv": "5.0.0",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "ultralytics": "8.4.170",
+    "torch": "2.14.1+cu130"
+  },
+  "segmentation": {
+    "weights": "yolov8m-seg.pt",
+    "weights_sha256": "51fa7e5ef385efa6",
+    "conf": 0.1,
+    "select": "union",
+    "imgsz": 960,
+    "rotate": "90 clockwise"
+  },
+  "calibration_sha256": "69bb3830518b46e5",
+  "gantry_model": {
+    "cam": [
+      -1.2616918109095485,
+      1.1323607449067137,
+      1.1457137327541753,
+      -0.09661572862004991,
+      -0.00046954145175316534,
+      0.9958877593157901
+    ],
+    "sign": -1.0,
+    "sync": 0.9,
+    "median_reprojection_px": 2.414052736501133,
+    "source_scan": "arc22_office_20260830_121542_chest_phantom_manual_normal_extra_repeat"
+  },
+  "mm_per_px": 2.232650187029106
+}

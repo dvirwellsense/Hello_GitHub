@@ -54,6 +54,7 @@ def main():
     ap.add_argument('--sync', type=float, default=0.9)
     ap.add_argument('--baseline-halfwidth', type=int, default=10, help='pairs on each side used for the baseline')
     ap.add_argument('--arrows', help='folder: save a displacement picture for every labelled pair')
+    ap.add_argument('--include-outside', action='store_true', help='also process pairs outside the exposure window')
     ap.add_argument('--out', required=True)
     a = ap.parse_args()
     labels = parse_labels(a.label)
@@ -65,7 +66,7 @@ def main():
     Kn = np.diag([1 / f, 1 / f, 1])
     rows = []
     for i in range(1, len(scan)):
-        if not exposure[i]:
+        if not exposure[i] and not a.include_outside:
             continue
         body = cv2.imread(str(Path(a.body_masks) / f'body_{int(scan.index[i - 1]):06d}.png'), cv2.IMREAD_GRAYSCALE)
         img0, img1 = scan.image(i - 1), scan.image(i)

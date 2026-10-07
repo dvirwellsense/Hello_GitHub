@@ -61,7 +61,8 @@ python scripts/evaluate_scan.py --scan <scan.zip|folder> \
 | פרמטר | ברירת מחדל | משמעות |
 |---|---|---|
 | `--detector-mask` | | תמונת PNG בגודל 1280x720 על פריים HOME, לבן = מעל הגלאי. אפשר במקומה `--detector-rect x,y,w,h` |
-| `--threshold` | 0.5 px | סף בזמן שהקשת זזה (ציון אשכול של 30 נקודות). בערך 1.1 מ"מ במישור המיטה |
+| `--cluster-k` | 16 | גודל האשכול של הציון: חציון השארית של k נקודות שכנות (8, 16 או 30). עד אוקטובר 2026 היה 30. ראו `results/cluster_size_2026_10/` |
+| `--threshold` | 0.5 px | סף בזמן שהקשת זזה (ציון האשכול). בערך 1.1 מ"מ במישור המיטה |
 | `--static-threshold-mm` | 0.5 | סף כשהקשת עומדת |
 | `--persistence` | 1 | מספר הזוגות הרצופים מעל הסף שנדרש להתרעה |
 | `--all-phases` | | להתריע גם במהלך התנועה מ-HOME ובחזרה |
@@ -100,7 +101,7 @@ bash scripts/run_all.sh <scans_dir> [results] [masks]
 |---|---|
 | סגמנטציה | `yolov8m-seg.pt`, conf 0.25, imgsz 960, התמונה מסובבת ב-90 מעלות |
 | כיווץ מסכה | 21 פיקסלים |
-| סף בזמן תנועת הקשת | 0.5 px על `epi_enc_cl30` |
+| סף בזמן תנועת הקשת | 0.5 px על `epi_enc_cl30` (בהרצות הראשונות; כיום `epi_enc_cl16`) |
 | סף כשהקשת עומדת | 0.5 מ"מ |
 | persistence | 1 |
 | sync | 0.9 |
@@ -146,3 +147,7 @@ bash scripts/run_all.sh <scans_dir> [results] [masks]
 python scripts/fit_gantry.py --scan <static_scan> --calib data/CalibrationResult_arc22.json \
     --first 40 --last 110 --out data/gantry_<machine>.json
 ```
+
+
+## עדכון: אוקטובר 2026
+ברירת המחדל כיום: k=16, מסכה מאוחדת (`--seg-select union --seg-conf 0.1`), ROI מהכיול (`--detector-mask data/roi_arc22_calibrated.png --roi-fixed`), `--detect masked_abs --body-fb-max 0.1`. התוצאות העדכניות ב-`results/k16_2026_10/`, וסיכום מלא (באנגלית ובעברית) בחבילה `motion_detection_package.zip`.

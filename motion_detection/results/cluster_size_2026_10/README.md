@@ -20,3 +20,17 @@ Moving pairs: the 32 pairs the labeller confirmed on A30 and A44.
 The two alarms that remain at k=16-30 (A44 pair 90, A12 pair 66) are borderline false alarms (0.52-0.55): the labeller confirmed no motion in either.
 Caveat: k=16 was found on the same A30/A44 data it is judged on. A08, A12 and A26, once labelled precisely, are the
 held-out test. The default in evaluate_scan.py is unchanged.
+
+## Update: confirmed labels for A08, A12, A26 and the held-out result
+Moving pairs now confirmed on five scans (60 pairs): A30 12, A44 20, A08 14 (74-87), A12 5 (57-61), A26 9 (59-62, 64-68).
+Negatives: about 510 pairs. See `report.txt`.
+
+| k | moving detected at 0.5 | false alarms at 0.5 |
+|---|---|---|
+| 16 | 55 of 60 | 2 of 512 |
+| 30 (current) | 51 of 60 | 2 of 509 |
+
+Held-out (A08, A12, A26: labelled after k=16 was chosen; 28 moving pairs): k=16 detects 23, k=30 detects 22; one false alarm
+each (A12 pair 66). The gain there is a single pair (A26 pair 59, 0.47 -> 0.68). Most of the benefit is on A44 (development set).
+Two false alarms in about 510 pairs means a 66-pair scan has roughly a one in four chance of one borderline spurious alarm,
+with k=16 or k=30. The default in evaluate_scan.py is unchanged.

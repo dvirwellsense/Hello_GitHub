@@ -31,3 +31,8 @@
 
 ## A12: label confirmed
 The labeller confirmed that 57-61 is exactly the motion (56, 62, 63 quiet) and that pair 66 has no motion (a borderline false alarm, 0.52).
+
+## A08 and A26: labels confirmed (October 2026)
+- A08: moving pairs 74-87 (74 is a small motion; 87 is motion too). Pairs 73 and 88 are quiet, and nothing moves around 116.
+  All 14 moving pairs are detected (score 0.55-5.03); no suspects outside.
+- A26: moving pairs 59-62 and 64-68 (9 pairs); 63 and 69 are quiet. 3 of 9 detected (60, 61, 68) with k=30; 4 of 9 with k=16 (adds 59).

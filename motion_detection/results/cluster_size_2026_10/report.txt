@@ -1,13 +1,31 @@
-negatives: static scans + confirmed pauses + unlabelled pairs more than 2 pairs from any label
-k   n_neg  median  p95   max   | thr=max_neg: moving detected (A30+A44, n=32) | at 0.5: moving, false alarms
-8   512    0.14   0.37  4.68  | 5/32 (16%)   | 32/32, FA 13/512
-12  510    0.11   0.30  0.63  | 32/32 (100%)   | 32/32, FA 4/510
-16  506    0.10   0.25  0.55  | 32/32 (100%)   | 32/32, FA 2/506
-20  505    0.09   0.22  0.55  | 31/32 (97%)   | 31/32, FA 2/505
-30  503    0.08   0.18  0.53  | 28/32 (88%)   | 29/32, FA 2/503
-45  500    0.07   0.15  0.50  | 25/32 (78%)   | 25/32, FA 1/500
+ALL scans. negatives: static scans + confirmed pauses + unlabelled pairs more than 2 pairs from any label
+k   n_neg  median  p95   max   | moving detected at 0.5 | false alarms at 0.5 | moving above max negative
+8   518    0.14   0.41  4.68  | 55/60              | 13/518            | 7/60
+12  516    0.11   0.31  0.63  | 55/60              | 4/516            | 54/60
+16  512    0.10   0.26  0.55  | 55/60              | 2/512            | 55/60
+20  511    0.09   0.23  0.55  | 54/60              | 2/511            | 54/60
+30  509    0.08   0.19  0.53  | 51/60              | 2/509            | 50/60
+45  506    0.07   0.17  0.50  | 47/60              | 1/506            | 47/60
 
-A44 pairs 67, 70, 71 (verified moving, missed at k=30):
+DEVELOPMENT set (k=16 was chosen here): all scans except A08, A12, A26
+k   n_neg  median  p95   max   | moving detected at 0.5 | false alarms at 0.5 | moving above max negative
+8   351    0.15   0.37  4.68  | 32/32              | 6/351            | 5/32
+12  349    0.12   0.32  0.57  | 32/32              | 2/349            | 32/32
+16  345    0.11   0.26  0.55  | 32/32              | 1/345            | 32/32
+20  344    0.10   0.23  0.52  | 31/32              | 1/344            | 31/32
+30  342    0.09   0.18  0.52  | 29/32              | 1/342            | 28/32
+45  339    0.08   0.15  0.49  | 25/32              | 0/339            | 25/32
+
+HELD-OUT: A08, A12, A26 (labelled after k=16 was chosen)
+k   n_neg  median  p95   max   | moving detected at 0.5 | false alarms at 0.5 | moving above max negative
+8   167    0.11   0.48  1.16  | 23/28              | 7/167            | 16/28
+12  167    0.09   0.30  0.63  | 23/28              | 2/167            | 22/28
+16  167    0.09   0.25  0.55  | 23/28              | 1/167            | 23/28
+20  167    0.08   0.23  0.55  | 23/28              | 1/167            | 23/28
+30  167    0.07   0.21  0.53  | 22/28              | 1/167            | 22/28
+45  167    0.06   0.21  0.50  | 22/28              | 1/167            | 22/28
+
+A44 pairs 67, 70, 71 (confirmed moving, missed at k=30):
   k=8   [6.48, 2.13, 8.98]
   k=12  [6.37, 2.09, 5.21]
   k=16  [6.26, 1.09, 2.56]
@@ -15,8 +33,14 @@ A44 pairs 67, 70, 71 (verified moving, missed at k=30):
   k=30  [0.19, 0.33, 0.2]
   k=45  [0.14, 0.2, 0.2]
 
-Labelled sets (pauses not checked): fraction above the zero-false-alarm threshold of each k
-  A08    k8: 2/13  k12: 12/13  k16: 13/13  k20: 13/13  k30: 13/13  k45: 13/13
-  A12    k8: 0/5  k12: 5/5  k16: 5/5  k20: 5/5  k30: 5/5  k45: 5/5
-  A26    k8: 0/10  k12: 4/10  k16: 4/10  k20: 4/10  k30: 3/10  k45: 3/10
-  A28_1  k8: 12/24  k12: 24/24  k16: 24/24  k20: 24/24  k30: 23/23  k45: 21/21
+A26 (9 moving pairs: 59-62, 64-68; quiet: 63, 69), score per pair at k=16 and k=30:
+  k=16: {58: 0.08, 59: 0.68, 60: 0.68, 61: 0.67, 62: 0.42, 63: 0.19, 64: 0.11, 65: 0.27, 66: 0.22, 67: 0.43, 68: 0.78, 69: 0.25}
+  k=30: {58: 0.07, 59: 0.47, 60: 0.63, 61: 0.67, 62: 0.42, 63: 0.18, 64: 0.09, 65: 0.24, 66: 0.19, 67: 0.42, 68: 0.71, 69: 0.21}
+
+Labelled but pauses not checked: A28_1 63-86, pairs above the largest negative of each k
+  k=8   12/24
+  k=12  24/24
+  k=16  24/24
+  k=20  24/24
+  k=30  23/23
+  k=45  21/21

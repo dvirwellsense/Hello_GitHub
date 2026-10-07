@@ -28,3 +28,6 @@
 - זוהו 3 מתוך 10: 60, 61, 68 (ציון 0.63–0.71).
 - לא זוהו: 59 (0.47) ו-62 (0.41) ו-67 (0.42) קרובים לסף, ו-63–66 נמוכים (0.09–0.23).
 - מחוץ לתיוג: אין חשדות.
+
+## A12: label confirmed
+The labeller confirmed that 57-61 is exactly the motion (56, 62, 63 quiet) and that pair 66 has no motion (a borderline false alarm, 0.52).

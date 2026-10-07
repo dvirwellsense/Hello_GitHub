@@ -17,6 +17,6 @@ Moving pairs: the 32 pairs the labeller confirmed on A30 and A44.
 | 30 (current) | 2 of 503 | 29 of 32 | 0.2 / 0.3 / 0.2 | - |
 | 45 | 1 of 500 | 25 of 32 | 0.1 / 0.2 / 0.2 | - |
 
-The two alarms that remain at k=16-30 (A44 pair 90, A12 pair 66) are unexplained, not necessarily false.
+The two alarms that remain at k=16-30 (A44 pair 90, A12 pair 66) are borderline false alarms (0.52-0.55): the labeller confirmed no motion in either.
 Caveat: k=16 was found on the same A30/A44 data it is judged on. A08, A12 and A26, once labelled precisely, are the
 held-out test. The default in evaluate_scan.py is unchanged.

@@ -28,6 +28,7 @@ def main():
     ap.add_argument('--label', action='append', default=[])
     ap.add_argument('--title', default='')
     ap.add_argument('--threshold', type=float, default=0.5)
+    ap.add_argument('--cluster-k', type=int, default=16, help='score column to plot (falls back to the 30-point column in old CSVs)')
     ap.add_argument('--out', required=True)
     a = ap.parse_args()
     rows = list(csv.DictReader(open(a.csv)))
@@ -38,7 +39,10 @@ def main():
     st = np.array([r['same_angle'] == 'True' for r in rows])
     ms = np.array([r.get('motion_state', '') for r in rows])
     num = lambda k: np.array([float(r[k]) if r.get(k) not in (None, '', 'nan') else np.nan for r in rows])
-    score = np.where(st, num('static_cl'), num('epi_enc_cl30'))
+    col = f'epi_enc_cl{a.cluster_k}' if a.cluster_k != 8 else 'epi_enc_cl'
+    if col not in rows[0]:
+        col = 'epi_enc_cl30'  # CSVs written before the cluster size became a parameter
+    score = np.where(st, num('static_cl'), num(col))
 
     fig, ax = plt.subplots(2, 1, figsize=(13, 7.2), sharex=True, gridspec_kw=dict(height_ratios=(1, 2.4)))
     lo, hi = f[ex].min() - 0.5, f[ex].max() + 0.5

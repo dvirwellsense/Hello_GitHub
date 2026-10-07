@@ -133,7 +133,7 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
         out['epi_bed_near'] = float(np.median(eb[sel])) if sel.any() else np.nan
     if len(b0) < 8 or out['same_angle']:
         out.update(affine_med=np.nan, affine_cl=np.nan, epi_img_med=np.nan, epi_img_cl=np.nan,
-                   epi_enc_med=np.nan, epi_enc_cl=np.nan, epi_enc_cl30=np.nan, epi_enc_bg=np.nan,
+                   epi_enc_med=np.nan, epi_enc_cl=np.nan, epi_enc_cl16=np.nan, epi_enc_cl30=np.nan, epi_enc_bg=np.nan,
                    epi_sens_px_per_deg=np.nan)
         return (out, None) if return_points else out
 
@@ -155,7 +155,7 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
     # timing/encoder error would move the score.
     Fp = Kn.T @ gantry.essential(angle_a, angle_b + 0.05) @ Kn
     sens = float(np.median(np.abs(epipolar_distance(Fp, b0, b1) - e)) / 0.05)
-    out.update(epi_enc_med=float(np.median(e)), epi_enc_cl=cluster_score(b0, e), epi_enc_cl30=cluster_score(b0, e, 30),
+    out.update(epi_enc_med=float(np.median(e)), epi_enc_cl=cluster_score(b0, e), epi_enc_cl16=cluster_score(b0, e, 16), epi_enc_cl30=cluster_score(b0, e, 30),
                epi_enc_bg=float(np.median(epipolar_distance(Fe, n0[on_bg], n1[on_bg]))), epi_sens_px_per_deg=sens)
     if return_points:
         return out, dict(p0=p0[on_body], p1=p1[on_body], fb=fb[on_body], n0=b0, n1=b1, e=e, Fe=Fe,

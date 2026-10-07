@@ -11,8 +11,8 @@ Scores per pair, pixels of the undistorted half-resolution frame (~2.2 mm/px at 
   epi_img_*  epipolar distance, geometry estimated from background points
   epi_enc_*  epipolar distance, geometry from the encoder + gantry model
   static_*   same-angle pairs: displacement after removing the common background shift
-  *_cl = spatial cluster score (8 points), *_cl30 = 30 points, *_med = over all body points
-  motion_mm = the score used for the alarm (epi_enc_cl30 or static_cl, converted to mm at the bed plane)
+  *_cl = spatial cluster score (8 points), *_cl16 = 16 points, *_cl30 = 30 points, *_med = over all body points
+  motion_mm = the score used for the alarm (epi_enc_cl<k>, k = --cluster-k, or static_cl, converted to mm at the bed plane)
 
 Alarm rule: score above threshold for --persistence consecutive pairs inside the exposure window.
 Pairs where the gantry speed changes by >30% (start/stop/reversal) are skipped (accel_guard): there the
@@ -154,6 +154,9 @@ LABELS = {
 }
 
 
+SCORE_COLUMN = {8: 'epi_enc_cl', 16: 'epi_enc_cl16', 30: 'epi_enc_cl30'}
+
+
 def decide(rows, a):
     """Two independent judgements per pair, then alarms.
 
@@ -171,6 +174,8 @@ def decide(rows, a):
     alarm_confirmed: persistence over SUSPECT & (VERIFIED or NOT_CHECKED), inside the exposure window.
     alarm_any:       persistence over SUSPECT whatever the geometry (unreliable and missing background included).
     alarm:           alarm_confirmed with --guard-action drop, alarm_any with mark."""
+    if rows and SCORE_COLUMN[a.cluster_k] not in rows[0]:
+        raise SystemExit(f'this CSV has no column {SCORE_COLUMN[a.cluster_k]} (written before the cluster size became a parameter): use --cluster-k 30')
     unreliable = guard_flags(rows, a)
     run_c = run_a = 0
     for r, g in zip(rows, unreliable):
@@ -179,7 +184,7 @@ def decide(rows, a):
             score_mm = score * a.mm_per_px
             thr_hit = score_mm > a.static_threshold_mm
         else:
-            score = r['epi_enc_cl30']
+            score = r[SCORE_COLUMN[a.cluster_k]]
             score_mm = score * a.mm_per_px
             thr_hit = score > a.threshold
         motion = 'NO_BODY_DATA' if not np.isfinite(score) else ('SUSPECT' if thr_hit else 'NO_MOTION')
@@ -229,7 +234,9 @@ def main():
     ap.add_argument('--erode', type=int, default=21, help='erode body mask (px) to drop silhouette-edge points')
     ap.add_argument('--detector-mask', help='PNG on the HOME frame (1280x720), white = above the detector')
     ap.add_argument('--detector-rect', help='x,y,w,h on the HOME frame, instead of --detector-mask')
-    ap.add_argument('--threshold', type=float, default=0.5, help='gantry moving: epi_enc_cl30, px (0.5 px ~ 1.1 mm)')
+    ap.add_argument('--cluster-k', type=int, default=16, choices=sorted(SCORE_COLUMN),
+                    help='cluster size of the score: median residual of the k nearest points (default 16; was 30 until October 2026)')
+    ap.add_argument('--threshold', type=float, default=0.5, help='gantry moving: the cluster score, px (0.5 px ~ 1.1 mm)')
     ap.add_argument('--static-threshold-mm', type=float, default=0.5, help='gantry stopped: displacement, mm')
     ap.add_argument('--persistence', type=int, default=1)
     ap.add_argument('--detect', choices=('global', 'masked', 'masked_abs'), default='global',

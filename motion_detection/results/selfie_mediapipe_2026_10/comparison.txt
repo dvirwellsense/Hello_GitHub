@@ -1,0 +1,13 @@
+== results/k16_2026_10: moving flagged 55/60; negatives flagged 2/623 [('A44', 90), ('A12', 66)]; measurable pairs 691/735
+   A30          alarm frames (persistence 2): [56, 57, 58, 59, 60, 61, 62, 63, 64, 69]
+   A44          alarm frames (persistence 2): [57, 60, 61, 64, 65, 66, 67, 68, 71, 72, 76, 80, 84, 85]
+   A08          alarm frames (persistence 2): [75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87]
+   A12          alarm frames (persistence 2): [58, 59, 60, 61]
+   A26          alarm frames (persistence 2): [60, 61]
+   A28_1        alarm frames (persistence 2): [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 107, 108, 109, 110]
+== results/selfie_mediapipe_2026_10: moving flagged 50/60; negatives flagged 2/623 [('A44', 90), ('A07', 94)]; measurable pairs 616/735
+   A30          alarm frames (persistence 2): [56, 57, 58, 59, 60, 61, 62, 63, 64, 69]
+   A44          alarm frames (persistence 2): [57, 60, 61, 64, 65, 66, 67, 68, 71, 72, 76, 80, 84, 85]
+   A08          alarm frames (persistence 2): [75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87]
+   A26          alarm frames (persistence 2): [60, 61]
+   A28_1        alarm frames (persistence 2): [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 107, 108, 109, 110]

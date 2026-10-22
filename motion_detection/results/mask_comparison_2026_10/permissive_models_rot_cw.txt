@@ -1,0 +1,8 @@
+MediaPipe selfie_segmenter         ROI IoU mean 0.859 min 0.652 recall min 0.904 | full IoU mean 0.738 min 0.343 | 27 ms/frame
+    ROI IoU per frame: A07_53 0.675, A11_80 0.857, A27_92 0.992, A08_78 0.652, A44_60 0.986, A44_70 0.990
+MediaPipe deeplab_v3 (person)      ROI IoU mean 0.418 min 0.000 recall min 0.000 | full IoU mean 0.389 min 0.000 | 200 ms/frame
+    ROI IoU per frame: A07_53 0.000, A11_80 0.000, A27_92 0.982, A08_78 0.000, A44_60 0.921, A44_70 0.603
+MediaPipe selfie_multiclass_256    ROI IoU mean 0.902 min 0.691 recall min 0.985 | full IoU mean 0.821 min 0.672 | 195 ms/frame
+    ROI IoU per frame: A07_53 0.870, A11_80 0.880, A27_92 0.993, A08_78 0.691, A44_60 0.987, A44_70 0.992
+U2-Net human_seg                   ROI IoU mean 0.820 min 0.441 recall min 0.458 | full IoU mean 0.736 min 0.358 | 643 ms/frame
+    ROI IoU per frame: A07_53 0.441, A11_80 0.605, A27_92 0.987, A08_78 0.905, A44_60 0.989, A44_70 0.991

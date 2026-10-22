@@ -231,6 +231,7 @@ def main():
     ap.add_argument('--mask', choices=('seg', 'color', 'phantom'), default='seg')
     ap.add_argument('--seg-select', choices=('top', 'union'), default='top', help='person masks: most confident only, or union of all')
     ap.add_argument('--seg-conf', type=float, default=0.25, help='minimum person confidence for segmentation')
+    ap.add_argument('--seg-weights', default='yolov8m-seg.pt', help='segmentation weights (YOLOv8-seg family)')
     ap.add_argument('--erode', type=int, default=21, help='erode body mask (px) to drop silhouette-edge points')
     ap.add_argument('--detector-mask', help='PNG on the HOME frame (1280x720), white = above the detector')
     ap.add_argument('--detector-rect', help='x,y,w,h on the HOME frame, instead of --detector-mask')
@@ -264,7 +265,7 @@ def main():
     calib = Calibration(a.calib)
     a.mm_per_px = 1.0 / calib.pixels_per_mm
     import motion.masks as _masks
-    _masks.SEG_SELECT, _masks.SEG_CONF = a.seg_select, a.seg_conf
+    _masks.SEG_SELECT, _masks.SEG_CONF, _masks.SEG_WEIGHTS = a.seg_select, a.seg_conf, a.seg_weights
     if a.from_csv:
         rows = decide(read_csv(a.from_csv), a)
         finish(rows, a)

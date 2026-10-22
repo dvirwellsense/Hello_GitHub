@@ -1,0 +1,16 @@
+yolov8n-seg.pt   union 0.1: ROI IoU mean 0.879 min 0.676 recall min 0.997 | full IoU mean 0.666 min 0.580 | 168 ms/frame
+    per frame ROI IoU: A07_53 0.676, A11_80 0.896, A27_92 0.989, A08_78 0.747, A44_60 0.980, A44_70 0.986
+yolov8n-seg.pt   top   0.25: ROI IoU mean 0.880 min 0.676 recall min 0.997 | full IoU mean 0.663 min 0.481 | 158 ms/frame
+    per frame ROI IoU: A07_53 0.676, A11_80 0.905, A27_92 0.989, A08_78 0.747, A44_60 0.980, A44_70 0.986
+yolov8s-seg.pt   union 0.1: ROI IoU mean 0.859 min 0.652 recall min 0.999 | full IoU mean 0.885 min 0.793 | 397 ms/frame
+    per frame ROI IoU: A07_53 0.675, A11_80 0.879, A27_92 0.986, A08_78 0.652, A44_60 0.979, A44_70 0.985
+yolov8s-seg.pt   top   0.25: ROI IoU mean 0.860 min 0.652 recall min 0.998 | full IoU mean 0.716 min 0.641 | 338 ms/frame
+    per frame ROI IoU: A07_53 0.675, A11_80 0.884, A27_92 0.987, A08_78 0.652, A44_60 0.980, A44_70 0.985
+yolov8m-seg.pt   union 0.1: ROI IoU mean 0.862 min 0.652 recall min 0.997 | full IoU mean 0.835 min 0.679 | 564 ms/frame
+    per frame ROI IoU: A07_53 0.675, A11_80 0.894, A27_92 0.987, A08_78 0.652, A44_60 0.980, A44_70 0.985
+yolov8m-seg.pt   top   0.25: ROI IoU mean 0.863 min 0.652 recall min 0.996 | full IoU mean 0.772 min 0.679 | 589 ms/frame
+    per frame ROI IoU: A07_53 0.675, A11_80 0.894, A27_92 0.987, A08_78 0.652, A44_60 0.981, A44_70 0.987
+yolo11x-seg.pt   union 0.1: ROI IoU mean 0.946 min 0.889 recall min 0.998 | full IoU mean 0.860 min 0.742 | 1970 ms/frame
+    per frame ROI IoU: A07_53 0.889, A11_80 0.921, A27_92 0.988, A08_78 0.907, A44_60 0.982, A44_70 0.988
+yolo11x-seg.pt   top   0.25: ROI IoU mean 0.946 min 0.890 recall min 0.998 | full IoU mean 0.788 min 0.724 | 2213 ms/frame
+    per frame ROI IoU: A07_53 0.890, A11_80 0.921, A27_92 0.988, A08_78 0.910, A44_60 0.982, A44_70 0.988

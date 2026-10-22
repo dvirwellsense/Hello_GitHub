@@ -14,9 +14,11 @@ _models = {}
 
 SEG_SELECT = 'top'   # 'top': most confident person only (original); 'union': all person masks with conf >= SEG_CONF
 SEG_CONF = 0.25
+SEG_WEIGHTS = 'yolov8m-seg.pt'   # evaluate_scan.py --seg-weights
 
 
-def person_mask_seg(img, weights='yolov8m-seg.pt', conf=None, select=None):
+def person_mask_seg(img, weights=None, conf=None, select=None):
+    weights = SEG_WEIGHTS if weights is None else weights
     conf = SEG_CONF if conf is None else conf
     select = SEG_SELECT if select is None else select
     from ultralytics import YOLO  # heavy import, only when used

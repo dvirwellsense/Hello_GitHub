@@ -1,0 +1,7 @@
+YOLOv8m top 0.25: full image IoU 0.879 recall 0.946 precision 0.925 leak_px 31246 miss_px 21792
+YOLOv8m top 0.25: detector ROI IoU 0.987 recall 1.000 precision 0.987 leak_px 1324 miss_px 0
+YOLOv8m union 0.1: full image IoU 0.885 recall 0.992 precision 0.892 leak_px 48949 miss_px 3317
+YOLOv8m union 0.1: detector ROI IoU 0.987 recall 1.000 precision 0.987 leak_px 1324 miss_px 0
+pair 92->93 with mine (as used, eroded 21)   : body points 296, score k8 0.10 k16 0.09 k30 0.09
+pair 92->93 with human, eroded 21            : body points 283, score k8 0.10 k16 0.09 k30 0.09
+pair 92->93 with human, raw                  : body points 300, score k8 0.10 k16 0.09 k30 0.09

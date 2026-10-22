@@ -238,7 +238,7 @@ def main():
                     help='cluster size of the score: median residual of the k nearest points (default 16; was 30 until October 2026)')
     ap.add_argument('--threshold', type=float, default=0.5, help='gantry moving: the cluster score, px (0.5 px ~ 1.1 mm)')
     ap.add_argument('--static-threshold-mm', type=float, default=0.5, help='gantry stopped: displacement, mm')
-    ap.add_argument('--persistence', type=int, default=1)
+    ap.add_argument('--persistence', type=int, default=2, help='consecutive suspected pairs needed for an alarm (default 2 since October 2026; 1 = every suspected pair alarms)')
     ap.add_argument('--detect', choices=('global', 'masked', 'masked_abs'), default='global',
                     help='global: corners on the whole image then filtered; masked: body corners detected inside body & ROI '
                          '(quality relative to the body); masked_abs: same region, quality threshold of global')

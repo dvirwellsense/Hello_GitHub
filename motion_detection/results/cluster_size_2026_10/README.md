@@ -34,3 +34,6 @@ Held-out (A08, A12, A26: labelled after k=16 was chosen; 28 moving pairs): k=16 
 each (A12 pair 66). The gain there is a single pair (A26 pair 59, 0.47 -> 0.68). Most of the benefit is on A44 (development set).
 Two false alarms in about 510 pairs means a 66-pair scan has roughly a one in four chance of one borderline spurious alarm,
 with k=16 or k=30. The default in evaluate_scan.py is unchanged.
+
+## Decision
+k=16 is kept as the default cluster size (confirmed by the owner, October 2026). `--cluster-k 30` reproduces the earlier numbers.

@@ -33,3 +33,9 @@ Limits: three frames, three static pairs; no moving pair was evaluated; the huma
 ## A27 as a negative control (`results/a27_2026_10/`)
 A27: volunteer V03, chest, breath hold maintained through the whole sweep (SCAN_LABEL: expected class NO MOTION). Run with the final settings (E3, union masks, k=16): exposure window pairs 59-125 (67), all 67 scored,
 0 alarms, score median 0.11, maximum 0.28 (k=30: 0.09 / 0.23). Another clean static control on a chest.
+
+## A08 frame 78 (moving pair 79, hand-drawn with `tools/mask_annotator.html`)
+The annotation (`human_masks/user_annotations_A08_78.json`) follows the legs closely, includes the shoes and excludes the bed between the legs and the laptop.
+YOLO (top and union identical): IoU 0.68 whole image, 0.65 inside the detector ROI (recall 1.00; the difference is again the bed between the legs).
+Pair 78->79 (moving, a large motion): score k=8 / 16 / 30 = 5.08 / 5.02 / 4.94 with **both** masks; body points 874 (mine) against 660 (human, eroded 21 px) and 729 (raw).
+So a large motion is not affected by the extra bed points. A small moving group (A44 pair 71, k=30 score 0.20 against 2.56 with k=16) is the more discriminating test.

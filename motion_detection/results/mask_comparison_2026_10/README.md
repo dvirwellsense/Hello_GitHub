@@ -45,3 +45,9 @@ Legs crossed, knee raised: no bed gap inside the ROI. YOLO union against the han
 The top mask (highest-confidence person) has IoU 0.74 on the whole image (recall 0.75, it misses a large part of the person) but 0.98 inside the ROI.
 Pair 60->61: score k=8 / 16 / 30 = 3.88 / 3.57 / 3.02 with all three masks (mine 183 body points, human eroded 176, human raw 192).
 Summary of the two moving pairs checked so far (A08 79, A44 61): the hand-drawn mask changes neither the score nor the detection. The decisive test remains A44 frame 70 (pair 71, small group, k=30 score 0.20).
+
+## A44 frame 70 (pair 71: the small moving group missed with k=30) - the decisive test
+The raw JSON (`user_annotations_A44_60_and_70_raw.json`) holds the frame-60 annotation again plus one annotation named `image-<number>.jpg` (the image was opened under another file name, so the tool could not read scan and frame);
+it was relabelled A44 frame 70 (`user_annotations_A44_70.json`). The overlay fits the frame.
+YOLO union against the hand-drawn mask: IoU 0.96 whole image, 0.985 inside the ROI. Pair 70->71, score k=8 / 16 / 30 = 8.98 / 2.56 / 0.20 with **all three masks** (mine 141 body points, human eroded 137, raw 148).
+**Conclusion: the miss of this small motion with k=30 is not caused by the mask. It is the cluster size.** A hand-drawn mask does not change the score, so there is no reason to improve the automatic mask for the sake of detection.

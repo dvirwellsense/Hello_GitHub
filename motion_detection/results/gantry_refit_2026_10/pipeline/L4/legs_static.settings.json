@@ -1,0 +1,80 @@
+{
+  "command": "scripts/evaluate_scan.py --scan /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/scans/arc22_office_20260830_142447_volunteer_both_legs_manual_normal_static_repea --calib data/CalibrationResult_arc22.json --gantry results/gantry_refit_2026_10/gantry_B_V3.json --sync 0.403 --detector-mask data/roi_arc22_calibrated.png --roi-fixed --detect masked_abs --body-fb-max 0.1 --guard none --body-masks /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/masks_union_old/legs_static --baseline 4 --out results/gantry_refit_2026_10/pipeline/L4/legs_static.csv",
+  "args": {
+    "scan": "/tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/scans/arc22_office_20260830_142447_volunteer_both_legs_manual_normal_static_repea",
+    "from_csv": null,
+    "calib": "data/CalibrationResult_arc22.json",
+    "gantry": "results/gantry_refit_2026_10/gantry_B_V3.json",
+    "mask": "seg",
+    "seg_select": "top",
+    "seg_conf": 0.25,
+    "seg_weights": "yolov8m-seg.pt",
+    "erode": 21,
+    "detector_mask": "data/roi_arc22_calibrated.png",
+    "detector_rect": null,
+    "cluster_k": 16,
+    "threshold": 0.5,
+    "static_threshold_mm": 0.5,
+    "persistence": 2,
+    "detect": "masked_abs",
+    "body_fb_max": 0.1,
+    "body_masks": "/tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/masks_union_old/legs_static",
+    "guard": "none",
+    "guard_bg_px": 0.4,
+    "guard_bed_px": 0.3,
+    "min_bed": 30,
+    "bed": null,
+    "bed_near_px": 150,
+    "roi_fixed": true,
+    "guard_px": 0.25,
+    "guard_action": "drop",
+    "all_phases": false,
+    "sync": 0.403,
+    "baseline": 4,
+    "out": "results/gantry_refit_2026_10/pipeline/L4/legs_static.csv",
+    "plot": null,
+    "label": [],
+    "save_masks": null
+  },
+  "git_commit": "f3adef1",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.11.15",
+    "opencv": "5.0.0",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "ultralytics": "8.4.170",
+    "torch": "2.14.1+cu130"
+  },
+  "segmentation": {
+    "weights": "yolov8m-seg.pt",
+    "weights_sha256": "51fa7e5ef385efa6",
+    "conf": 0.25,
+    "select": "top",
+    "imgsz": 960,
+    "rotate": "90 clockwise"
+  },
+  "calibration_sha256": "69bb3830518b46e5",
+  "gantry_model": {
+    "cam": [
+      -1.2473202458677055,
+      1.1174154929067468,
+      1.1505886310104114,
+      -0.09965709182355109,
+      -0.019355604728213936,
+      0.9948335662881337
+    ],
+    "sign": -1.0,
+    "ext": {
+      "scale": 0.35166328298242383
+    },
+    "sync": 0.4028184278550709,
+    "fold": "B",
+    "variant": "V3",
+    "fitted_on": [
+      "A11",
+      "A27"
+    ]
+  },
+  "mm_per_px": 2.232650187029106
+}

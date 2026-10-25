@@ -1,0 +1,25 @@
+== A07 (B)
+L=1 chained: 59/59 scored, median 0.081, max 0.164 px, median points 987
+L=2 chained: 59/59 scored, median 0.148, max 0.297 px, median points 966
+L=4 chained: 59/59 scored, median 0.263, max 0.403 px, median points 935
+L=8 chained: 59/59 scored, median 0.504, max 0.706 px, median points 887
+== A11 (A)
+L=1 chained: 60/60 scored, median 0.073, max 0.162 px, median points 496
+L=2 chained: 60/60 scored, median 0.135, max 0.277 px, median points 494
+L=4 chained: 60/60 scored, median 0.231, max 0.538 px, median points 488
+L=8 chained: 60/60 scored, median 0.429, max 1.015 px, median points 478
+== legs_static (B)
+L=1 chained: 59/59 scored, median 0.164, max 0.322 px, median points 683
+L=2 chained: 59/59 scored, median 0.374, max 0.674 px, median points 677
+L=4 chained: 59/59 scored, median 0.707, max 1.279 px, median points 674
+L=8 chained: 59/59 scored, median 1.124, max 2.430 px, median points 664
+== A27 (A)
+L=1 chained: 60/60 scored, median 0.108, max 0.206 px, median points 299
+L=2 chained: 60/60 scored, median 0.166, max 0.295 px, median points 293
+L=4 chained: 60/60 scored, median 0.276, max 0.526 px, median points 286
+L=8 chained: 60/60 scored, median 0.498, max 0.929 px, median points 277
+== phantom (B)
+L=1 chained: 59/59 scored, median 0.239, max 0.630 px, median points 78
+L=2 chained: 58/59 scored, median 0.415, max 0.795 px, median points 72
+L=4 chained: 57/59 scored, median 0.752, max 1.538 px, median points 61
+L=8 chained: 56/59 scored, median 1.295, max 2.642 px, median points 47

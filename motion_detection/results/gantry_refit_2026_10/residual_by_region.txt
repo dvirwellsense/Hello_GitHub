@@ -1,0 +1,30 @@
+Median |epipolar residual| (px) of static points at L=8, by distance from the detector-region centre (normalized image units;
+0.2 ~ 75 raw px at the image centre). V0 = original model, V3 = refit with encoder scale, fitted on the other fold.
+phantom
+   0.0-0.2: n   581  V0 0.79  V3 0.88
+   0.2-0.4: n  5009  V0 0.41  V3 0.29
+   0.4-0.7: n  5748  V0 1.14  V3 0.29
+   0.7-1.0: n  2522  V0 3.54  V3 0.36
+   1.0-9.0: n  1161  V0 4.56  V3 1.21
+A07
+   0.2-0.4: n  3220  V0 0.46  V3 0.35
+   0.4-0.7: n  7824  V0 1.30  V3 0.28
+   0.7-1.0: n  3532  V0 3.34  V3 0.36
+   1.0-9.0: n  1835  V0 5.01  V3 1.18
+legs_static
+   0.0-0.2: n   360  V0 0.03  V3 0.05
+   0.2-0.4: n  3699  V0 0.28  V3 0.21
+   0.4-0.7: n  6481  V0 1.23  V3 0.26
+   0.7-1.0: n  3772  V0 3.65  V3 0.41
+   1.0-9.0: n  1844  V0 5.17  V3 0.95
+A11
+   0.0-0.2: n   853  V0 0.16  V3 0.09
+   0.2-0.4: n  4409  V0 0.41  V3 0.20
+   0.4-0.7: n  4402  V0 1.10  V3 0.29
+   0.7-1.0: n  2760  V0 3.27  V3 0.42
+   1.0-9.0: n  1671  V0 6.07  V3 0.65
+A27
+   0.2-0.4: n  2566  V0 0.47  V3 0.33
+   0.4-0.7: n  8029  V0 1.15  V3 0.28
+   0.7-1.0: n  3622  V0 3.20  V3 0.27
+   1.0-9.0: n  1853  V0 5.04  V3 1.05

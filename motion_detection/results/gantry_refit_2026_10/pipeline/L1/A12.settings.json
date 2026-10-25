@@ -1,0 +1,83 @@
+{
+  "command": "scripts/evaluate_scan.py --scan /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/new2/A12/arc22_office_20260907_125615/ --calib data/CalibrationResult_arc22.json --gantry results/gantry_refit_2026_10/gantry_A_V3.json --sync 0.433 --detector-mask data/roi_arc22_calibrated.png --roi-fixed --detect masked_abs --body-fb-max 0.1 --guard none --body-masks /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/new2/masks_union/A12 --baseline 1 --label 57-61 --out results/gantry_refit_2026_10/pipeline/L1/A12.csv",
+  "args": {
+    "scan": "/tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/new2/A12/arc22_office_20260907_125615/",
+    "from_csv": null,
+    "calib": "data/CalibrationResult_arc22.json",
+    "gantry": "results/gantry_refit_2026_10/gantry_A_V3.json",
+    "mask": "seg",
+    "seg_select": "top",
+    "seg_conf": 0.25,
+    "seg_weights": "yolov8m-seg.pt",
+    "erode": 21,
+    "detector_mask": "data/roi_arc22_calibrated.png",
+    "detector_rect": null,
+    "cluster_k": 16,
+    "threshold": 0.5,
+    "static_threshold_mm": 0.5,
+    "persistence": 2,
+    "detect": "masked_abs",
+    "body_fb_max": 0.1,
+    "body_masks": "/tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/new2/masks_union/A12",
+    "guard": "none",
+    "guard_bg_px": 0.4,
+    "guard_bed_px": 0.3,
+    "min_bed": 30,
+    "bed": null,
+    "bed_near_px": 150,
+    "roi_fixed": true,
+    "guard_px": 0.25,
+    "guard_action": "drop",
+    "all_phases": false,
+    "sync": 0.433,
+    "baseline": 1,
+    "out": "results/gantry_refit_2026_10/pipeline/L1/A12.csv",
+    "plot": null,
+    "label": [
+      "57-61"
+    ],
+    "save_masks": null
+  },
+  "git_commit": "f3adef1",
+  "git_dirty": true,
+  "versions": {
+    "python": "3.11.15",
+    "opencv": "5.0.0",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "ultralytics": "8.4.170",
+    "torch": "2.14.1+cu130"
+  },
+  "segmentation": {
+    "weights": "yolov8m-seg.pt",
+    "weights_sha256": "51fa7e5ef385efa6",
+    "conf": 0.25,
+    "select": "top",
+    "imgsz": 960,
+    "rotate": "90 clockwise"
+  },
+  "calibration_sha256": "69bb3830518b46e5",
+  "gantry_model": {
+    "cam": [
+      -1.2446033227154976,
+      1.1259612245571182,
+      1.1421692876194927,
+      -0.09914582929560908,
+      -0.013526764495898487,
+      0.994980970216872
+    ],
+    "sign": -1.0,
+    "ext": {
+      "scale": 0.34510284696155535
+    },
+    "sync": 0.4325061242487257,
+    "fold": "A",
+    "variant": "V3",
+    "fitted_on": [
+      "phantom",
+      "A07",
+      "legs_static"
+    ]
+  },
+  "mm_per_px": 2.232650187029106
+}

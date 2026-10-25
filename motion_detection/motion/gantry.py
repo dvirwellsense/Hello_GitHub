@@ -23,24 +23,41 @@ def skew(v):
 
 
 class GantryModel:
-    def __init__(self, cam, sign=1.0):
+    """ext (optional, scripts/refit_gantry.py): deviations from the ideal circle, all zero = the original model.
+        scale            encoder angle -> true angle: th' = (1 + scale) * th
+        omega1, tau1     camera pose change linear in th' (rotation vector, translation; camera frame)
+        omega2, tau2     the same, quadratic in th'
+    so that x_cam = dR(th') R_c Rz(-th') X + t_c + dt(th'), dR = rotvec(omega1 th' + omega2 th'^2), dt likewise."""
+    EXT_KEYS = ('scale', 'omega1', 'tau1', 'omega2', 'tau2')
+
+    def __init__(self, cam, sign=1.0, ext=None):
         self.cam = np.asarray(cam, float)  # rotvec(3) + t(3)
         self.sign = float(sign)
+        self.ext = {k: np.asarray(v, float) for k, v in (ext or {}).items()}
 
     @classmethod
     def load(cls, path):
         d = json.load(open(path))
-        return cls(d['cam'], d['sign'])
+        return cls(d['cam'], d['sign'], d.get('ext'))
 
     def save(self, path, **extra):
-        json.dump(dict(cam=self.cam.tolist(), sign=self.sign, **extra), open(path, 'w'), indent=2)
+        ext = {k: v.tolist() for k, v in self.ext.items()} if self.ext else None
+        json.dump(dict(cam=self.cam.tolist(), sign=self.sign, **({'ext': ext} if ext else {}), **extra), open(path, 'w'), indent=2)
 
     def projections(self, angles_deg):
         """3x4 camera matrices (normalized coordinates) for the given gantry angles."""
-        th = np.radians(self.sign * np.atleast_1d(angles_deg))
+        th = np.radians(self.sign * np.atleast_1d(np.asarray(angles_deg, float)))
         R = Rot.from_rotvec(self.cam[:3]).as_matrix()
-        M = np.einsum('ij,njk->nik', R, Rz(-th))
-        return np.concatenate([M, np.broadcast_to(self.cam[3:6, None], (len(th), 3, 1))], 2)
+        if not self.ext:
+            M = np.einsum('ij,njk->nik', R, Rz(-th))
+            return np.concatenate([M, np.broadcast_to(self.cam[3:6, None], (len(th), 3, 1))], 2)
+        e = self.ext
+        th = th * (1 + float(e.get('scale', 0.0)))
+        z3 = np.zeros(3)
+        w = np.outer(th, e.get('omega1', z3)) + np.outer(th ** 2, e.get('omega2', z3))
+        dt = np.outer(th, e.get('tau1', z3)) + np.outer(th ** 2, e.get('tau2', z3))
+        M = np.einsum('nij,jk,nkl->nil', Rot.from_rotvec(w).as_matrix(), R, Rz(-th))
+        return np.concatenate([M, (self.cam[3:6] + dt)[:, :, None]], 2)
 
     def essential(self, angle_a, angle_b):
         """Essential matrix mapping normalized points of view a to epipolar lines in view b."""

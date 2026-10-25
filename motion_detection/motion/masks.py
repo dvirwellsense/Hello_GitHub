@@ -15,6 +15,7 @@ _models = {}
 SEG_SELECT = 'top'   # 'top': most confident person only (original); 'union': all person masks with conf >= SEG_CONF
 SEG_CONF = 0.25
 SEG_WEIGHTS = 'yolov8m-seg.pt'   # evaluate_scan.py --seg-weights
+SEG_IMGSZ = 960                  # evaluate_scan.py --seg-imgsz
 
 
 def person_mask_seg(img, weights=None, conf=None, select=None):
@@ -26,7 +27,7 @@ def person_mask_seg(img, weights=None, conf=None, select=None):
         _models[weights] = YOLO(weights)
     # The patient lies along the image x axis; rotate so the person is upright for the model.
     rot = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
-    r = _models[weights].predict(rot, classes=[0], conf=conf, imgsz=960, retina_masks=True, verbose=False)[0]
+    r = _models[weights].predict(rot, classes=[0], conf=conf, imgsz=SEG_IMGSZ, retina_masks=True, verbose=False)[0]
     m = np.zeros(rot.shape[:2], np.uint8)
     if r.masks is not None and len(r.masks):
         if select == 'union':

@@ -1,0 +1,15 @@
+Scan arc22_office_20260907_152109, frames 50-79; median time per frame (ms)
+  1 read image                                                4.1
+  2 grey                                                      0.3
+  3 background: detect (3000 corners, whole image)           19.9
+  4 background: track forward+backward                       33.7
+  5 body: detect (masked_abs)                                24.7
+  6 body: track forward+backward                              6.5
+  7 body: undistort + epipolar + k=16 score                   2.6
+  8 second check: chained i-4 -> i                           48.4
+  all of the above                                          140.2
+  without background points (steps 3-4)                      86.6
+  segmentation yolov8m-seg.pt imgsz 960 (union, conf 0.1):   479.2 ms per frame
+  segmentation yolov8m-seg.pt imgsz 640 (union, conf 0.1):   229.2 ms per frame
+  segmentation /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/yolov8n-seg.pt imgsz 960 (union, conf 0.1):    89.0 ms per frame
+  segmentation /tmp/claude-0/-home-user-Hello-GitHub/9994e753-ca74-53f7-b7c8-2fe515ce5ad0/scratchpad/yolov8n-seg.pt imgsz 640 (union, conf 0.1):    52.1 ms per frame

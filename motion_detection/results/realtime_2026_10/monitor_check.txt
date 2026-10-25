@@ -1,0 +1,22 @@
+A30: 144 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 43.2, 95th pct 105.6, max 139.0
+A44: 150 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 45.6, 95th pct 98.9, max 119.1
+A08: 175 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 82.2, 95th pct 132.8, max 163.1
+A12: 151 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 57.8, 95th pct 114.0, max 127.2
+A26: 155 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 46.4, 95th pct 94.7, max 112.1
+A28_1: 149 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 48.5, 95th pct 105.8, max 135.8
+A07: 169 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 83.7, 95th pct 137.0, max 154.0
+A11: 148 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 57.5, 95th pct 101.2, max 107.8
+legs_static: 227 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 74.3, 95th pct 123.0, max 139.3
+VC01_bh: 146 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 33.2, 95th pct 87.0, max 114.1
+A27: 160 pairs; max |diff| adjacent score 0.00e+00 px, chained 0.00e+00 px; mismatches 0 []
+   time per frame (ms): median 52.9, 95th pct 115.4, max 140.8

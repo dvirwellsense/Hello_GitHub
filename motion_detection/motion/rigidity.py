@@ -15,23 +15,26 @@ def epipolar_distance(F, a, b):
     return np.abs(np.sum(lines * np.c_[b, np.ones(len(b))], 1)) / np.hypot(lines[:, 0], lines[:, 1])
 
 
+def knn(pts, k):
+    """Indices of the k nearest points of every point (itself included). k-d tree: O(n log n) instead of the full
+    n x n distance matrix (same neighbours; was 45% of the time per frame with ~1000 body points)."""
+    from scipy.spatial import cKDTree
+    return cKDTree(pts).query(pts, k)[1]
+
+
 def cluster_score(pts, err, k=8):
     """Max over points of the median error of the point and its k-1 nearest neighbours.
     Requires a spatially coherent group to move; isolated bad tracks do not trigger."""
     if len(err) < k:
         return np.nan
-    D = np.linalg.norm(pts[:, None] - pts[None], axis=2)
-    nn = np.argsort(D, 1)[:, :k]
-    return float(np.max(np.median(err[nn], axis=1)))
+    return float(np.max(np.median(err[knn(pts, k)], axis=1)))
 
 
 def static_cluster_score(pts, disp, k=30):
     """Same-angle pair: max over points of |median displacement vector of the k nearest points|."""
     if len(disp) < k:
         return np.nan
-    D = np.linalg.norm(pts[:, None] - pts[None], axis=2)
-    nn = np.argsort(D, 1)[:, :k]
-    return float(np.max(np.linalg.norm(np.median(disp[nn], axis=1), axis=1)))
+    return float(np.max(np.linalg.norm(np.median(disp[knn(pts, k)], axis=1), axis=1)))
 
 
 def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry, bg_margin_px=81,

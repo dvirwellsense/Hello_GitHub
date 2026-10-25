@@ -1,4 +1,4 @@
-"""Score every adjacent frame pair of a scan (causal, real-time capable) and raise motion alarms.
+"""Score every adjacent frame pair (or, with --baseline L, every pair i-L -> i) of a scan (causal, real-time capable) and raise motion alarms.
 
 Gantry moving between the two frames -> epipolar check (encoder + gantry model).
 Gantry stopped (same angle)          -> direct comparison: any coherent displacement is motion.
@@ -257,6 +257,9 @@ def main():
                     help='drop: unreliable pairs cannot alarm (original); mark: they still alarm, reported as unreliable')
     ap.add_argument('--all-phases', action='store_true', help='also alarm during approach / return')
     ap.add_argument('--sync', type=float, default=0.9)
+    ap.add_argument('--baseline', type=int, default=1,
+                    help='compare frame i with frame i-L (default 1 = adjacent pairs); a pair is in the exposure window '
+                         'when all frames between are. L > 1 catches slow drift that is below threshold per frame')
     ap.add_argument('--out', required=True, help='CSV with per-pair scores')
     ap.add_argument('--plot', help='optional PNG')
     ap.add_argument('--label', action='append', default=[], help='labelled motion range, e.g. 63-85 (plot only)')
@@ -284,13 +287,20 @@ def main():
     phase = scan.phases()
     exposure = scan.exposure_pairs()
     rows = []
-    prev = scan.image(0)
-    for i in range(1, len(scan)):
-        cur = scan.image(i)
+    L = a.baseline
+    if L > 1 and roi is not None and not a.roi_fixed:
+        raise SystemExit('--baseline > 1 needs --roi-fixed (the ROI is carried pair by pair)')
+    if L > 1 and bed is not None:
+        raise SystemExit('--baseline > 1 cannot carry the bed outline (pair by pair): leave out --bed, use --guard none')
+    images = {k: scan.image(k) for k in range(L)}
+    for i in range(L, len(scan)):
+        j = i - L  # frame a of the pair
+        images[i] = cur = scan.image(i)
+        prev = images.pop(j)
         if a.body_masks:
-            body = cv2.imread(str(Path(a.body_masks) / f'body_{int(scan.index[i - 1]):06d}.png'), cv2.IMREAD_GRAYSCALE)
+            body = cv2.imread(str(Path(a.body_masks) / f'body_{int(scan.index[j]):06d}.png'), cv2.IMREAD_GRAYSCALE)
             if body is None:
-                raise FileNotFoundError(f'body mask for frame {int(scan.index[i - 1])} in {a.body_masks}')
+                raise FileNotFoundError(f'body mask for frame {int(scan.index[j])} in {a.body_masks}')
             spec = np.zeros_like(body)
         else:
             body, spec = body_and_specular(a.mask, prev)
@@ -312,21 +322,20 @@ def main():
                 k = int(2 * a.bed_near_px + 1)
                 near = cv2.dilate(reg, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0
         if a.save_masks:
-            save_mask(a.save_masks, int(scan.index[i - 1]), prev, body, spec, roi)
-        r = evaluate_pair(prev, cur, scan.angle(i - 1, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi,
+            save_mask(a.save_masks, int(scan.index[j]), prev, body, spec, roi)
+        r = evaluate_pair(prev, cur, scan.angle(j, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi,
                           detect_mode=a.detect, roi_region=region, body_fb_max=a.body_fb_max, bed=bed, bg_near=near)
         H = r.pop('_H')
         if roi is not None and not a.roi_fixed:
             roi.advance(H)
         if bed is not None:
             bed.advance(H)
-        rows.append(dict(frame=int(scan.index[i]), phase=phase[i], exposure=bool(exposure[i]),
-                         angle=float(scan.angle(i, a.sync)), dangle=float(scan.angle(i, a.sync) - scan.angle(i - 1, a.sync)),
-                         t_req_a=float(scan.time_s[i - 1]), t_sav_a=float(scan.saved_s[i - 1]),
-                         ab_a=float(scan.angle_before[i - 1]), aa_a=float(scan.angle_after[i - 1]),
+        rows.append(dict(frame=int(scan.index[i]), phase=phase[i], exposure=bool(exposure[i] and exposure[j + 1]),
+                         angle=float(scan.angle(i, a.sync)), dangle=float(scan.angle(i, a.sync) - scan.angle(j, a.sync)),
+                         t_req_a=float(scan.time_s[j]), t_sav_a=float(scan.saved_s[j]),
+                         ab_a=float(scan.angle_before[j]), aa_a=float(scan.angle_after[j]),
                          t_req_b=float(scan.time_s[i]), t_sav_b=float(scan.saved_s[i]),
                          ab_b=float(scan.angle_before[i]), aa_b=float(scan.angle_after[i]), **r))
-        prev = cur
     finish(decide(rows, a), a)
 
 

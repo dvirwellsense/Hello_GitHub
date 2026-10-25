@@ -10,6 +10,7 @@ Displacement:
             as a translation in undistorted-image pixels and mapped back to raw pixels pixel by pixel.
   direction angle to the epipolar line through the region centre: 0 = across the line (fully visible to the
             score), 90 = along the line (invisible by construction).
+  baseline  --baseline L scores the pair i-L -> i, as evaluate_scan.py --baseline L (slow drift).
   region    disc of the given radius (raw px, ~1.1 mm per raw px at the bed plane) around a random body point
             above the detector, intersected with the body; or 'body' = the whole body (patient slides).
 Region edges are feathered over a few pixels. Nothing here changes the score or any threshold.
@@ -84,10 +85,11 @@ def warp(img, weight, pix, n_a_centre, d_px, ang_deg):
 def run_pair(job):
     i, seed = job
     a, scan, calib = G['a'], G['scan'], G['calib']
-    img_a, img_b = scan.image(i - 1), scan.image(i)
-    frame_a = int(scan.index[i - 1])
+    j = i - a.baseline  # frame a of the pair
+    img_a, img_b = scan.image(j), scan.image(i)
+    frame_a = int(scan.index[j])
     body = cv2.imread(str(Path(a.body_masks) / f'body_{frame_a:06d}.png'), cv2.IMREAD_GRAYSCALE)
-    G['ang_a'], G['ang_b'] = float(scan.angle(i - 1, a.sync)), float(scan.angle(i, a.sync))
+    G['ang_a'], G['ang_b'] = float(scan.angle(j, a.sync)), float(scan.angle(i, a.sync))
     base = dict(frame=int(scan.index[i]), angle=G['ang_b'])
     rows = [dict(base, region='none', size_mm=0.0, angle_deg=0, **score(img_a, img_b, G['ang_a'], G['ang_b'], body))]
     # body extent before erosion (the saved masks are eroded by 21 px)
@@ -98,7 +100,7 @@ def run_pair(job):
     rng = np.random.default_rng(seed)
     k = rng.integers(len(xs))
     cx, cy = int(xs[k]), int(ys[k])
-    for region in REGIONS:
+    for region in a.regions:
         if region == 'body':
             m = full.astype(np.float32)
             centre = (float(np.mean(xs)), float(np.mean(ys)))
@@ -111,9 +113,9 @@ def run_pair(job):
         w[w < 0.01] = 0
         pix = region_pixels(w)
         n_c = calib.undistort_points(np.array([centre])) * calib.focal_px
-        for size in SIZES_MM:
+        for size in a.sizes:
             d_px = size * calib.pixels_per_mm
-            for ang in ANGLES_DEG:
+            for ang in a.angles:
                 b2 = warp(img_b, w, pix, n_c[0], d_px, ang)
                 rows.append(dict(base, region=region, size_mm=size, angle_deg=ang, cx=centre[0], cy=centre[1],
                                  **score(img_a, b2, G['ang_a'], G['ang_b'], body)))
@@ -130,6 +132,12 @@ def main():
     ap.add_argument('--detector-mask', default='data/roi_arc22_calibrated.png')
     ap.add_argument('--body-fb-max', type=float, default=0.1)
     ap.add_argument('--sync', type=float, default=0.9)
+    ap.add_argument('--baseline', type=int, default=1,
+                    help='pair i-L -> i (use the CSV of an evaluate_scan.py run with the same --baseline). The injected '
+                         'size is then the displacement accumulated over L frames: a drift of size/L mm per frame')
+    ap.add_argument('--sizes', type=lambda v: tuple(float(x) for x in v.split(',')), default=SIZES_MM)
+    ap.add_argument('--angles', type=lambda v: tuple(int(x) for x in v.split(',')), default=ANGLES_DEG)
+    ap.add_argument('--regions', type=lambda v: tuple(v.split(',')), default=REGIONS)
     ap.add_argument('--every', type=int, default=2, help='use every n-th eligible pair')
     ap.add_argument('--workers', type=int, default=4)
     ap.add_argument('--out', required=True)

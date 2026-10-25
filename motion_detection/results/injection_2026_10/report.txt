@@ -1,0 +1,104 @@
+Scans: A07, A11, A27, legs_static; 134 pairs, 12998 scored pairs
+Control (no injection) k=16: median 0.099 px, max 0.291 px
+Body points above the detector (median per pair) and r40 detection at 5 mm across the line, k=8/16/30:
+  A07          n_body   1001   1.00 / 1.00 / 0.97
+  A11          n_body    501   1.00 / 1.00 / 1.00
+  A27          n_body    308   0.76 / 0.53 / 0.26
+  legs_static  n_body    683   1.00 / 1.00 / 0.97
+
+== k=16: share of pairs detected (score > 0.5 px); unmeasurable counts as missed
+  region r40   size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.00     0.00     0.00     0.00
+                   0.50     0.00     0.00     0.00     0.00
+                   0.75     0.00     0.00     0.00     0.00
+                   1.00     0.08     0.01     0.00     0.00
+                   1.50     0.88     0.85     0.00     0.00
+                   2.00     0.89     0.89     0.10     0.00
+                   3.00     0.90     0.88     0.88     0.00
+                   5.00     0.88     0.88     0.87     0.00
+  region r80   size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.00     0.00     0.00     0.00
+                   0.50     0.00     0.00     0.00     0.00
+                   0.75     0.00     0.00     0.00     0.00
+                   1.00     0.37     0.04     0.00     0.00
+                   1.50     1.00     0.99     0.00     0.00
+                   2.00     1.00     1.00     0.37     0.00
+                   3.00     1.00     1.00     1.00     0.00
+                   5.00     1.00     1.00     1.00     0.00
+  region body  size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.00     0.00     0.00     0.00
+                   0.50     0.00     0.00     0.00     0.00
+                   0.75     0.01     0.00     0.00     0.00
+                   1.00     0.82     0.18     0.00     0.00
+                   1.50     1.00     1.00     0.01     0.00
+                   2.00     1.00     1.00     0.87     0.00
+                   3.00     1.00     1.00     1.00     0.00
+                   5.00     1.00     1.00     1.00     0.00
+
+  median score (px) across the line (0 deg), region r40: 0.25 mm -> 0.12, 0.5 mm -> 0.23, 0.75 mm -> 0.34, 1 mm -> 0.45, 1.5 mm -> 0.67, 2 mm -> 0.90, 3 mm -> 1.34, 5 mm -> 2.23
+
+== k=8: share of pairs detected (score > 0.5 px); unmeasurable counts as missed
+  region r40   size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.01     0.01     0.01     0.01
+                   0.50     0.01     0.01     0.01     0.01
+                   0.75     0.01     0.01     0.01     0.01
+                   1.00     0.23     0.03     0.01     0.01
+                   1.50     0.93     0.90     0.01     0.01
+                   2.00     0.94     0.94     0.27     0.01
+                   3.00     0.94     0.94     0.91     0.01
+                   5.00     0.94     0.94     0.94     0.01
+  region r80   size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.01     0.01     0.01     0.00
+                   0.50     0.01     0.01     0.01     0.01
+                   0.75     0.01     0.01     0.01     0.01
+                   1.00     0.51     0.11     0.01     0.01
+                   1.50     1.00     0.99     0.01     0.00
+                   2.00     1.00     1.00     0.52     0.00
+                   3.00     1.00     1.00     1.00     0.00
+                   5.00     1.00     1.00     1.00     0.00
+  region body  size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.01     0.01     0.01     0.01
+                   0.50     0.01     0.01     0.00     0.00
+                   0.75     0.07     0.01     0.01     0.01
+                   1.00     0.95     0.51     0.01     0.01
+                   1.50     1.00     1.00     0.06     0.01
+                   2.00     1.00     1.00     0.97     0.01
+                   3.00     1.00     1.00     1.00     0.02
+                   5.00     1.00     1.00     1.00     0.02
+
+== k=30: share of pairs detected (score > 0.5 px); unmeasurable counts as missed
+  region r40   size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.00     0.00     0.00     0.00
+                   0.50     0.00     0.00     0.00     0.00
+                   0.75     0.00     0.00     0.00     0.00
+                   1.00     0.04     0.00     0.00     0.00
+                   1.50     0.83     0.75     0.00     0.00
+                   2.00     0.84     0.84     0.05     0.00
+                   3.00     0.83     0.84     0.79     0.00
+                   5.00     0.80     0.77     0.78     0.00
+  region r80   size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.00     0.00     0.00     0.00
+                   0.50     0.00     0.00     0.00     0.00
+                   0.75     0.00     0.00     0.00     0.00
+                   1.00     0.19     0.01     0.00     0.00
+                   1.50     0.98     0.95     0.00     0.00
+                   2.00     0.99     0.99     0.19     0.00
+                   3.00     0.99     0.99     0.98     0.00
+                   5.00     0.99     0.99     0.99     0.00
+  region body  size_mm     0deg    30deg    60deg    90deg
+                   0.25     0.00     0.00     0.00     0.00
+                   0.50     0.00     0.00     0.00     0.00
+                   0.75     0.01     0.00     0.00     0.00
+                   1.00     0.69     0.05     0.00     0.00
+                   1.50     1.00     1.00     0.00     0.00
+                   2.00     1.00     1.00     0.65     0.00
+                   3.00     1.00     1.00     1.00     0.00
+                   5.00     1.00     1.00     1.00     0.00
+
+== Threshold trade-off (k=16), real runs, no injection. Negatives and moving pairs as in compare_mask_runs.py
+   (static scans, confirmed pauses, unlabelled pairs more than 2 pairs from a label)
+  threshold 0.50 px: labelled moving pairs flagged 55/60; negatives flagged 2/623; negative alarm frames (persistence 2) 0 []; injected r80 across the line detected: 0.5 mm 0.00, 0.75 mm 0.00, 1 mm 0.37, 1.5 mm 1.00
+  threshold 0.40 px: labelled moving pairs flagged 57/60; negatives flagged 9/623; negative alarm frames (persistence 2) 3 [('A12', 62), ('A12', 63), ('A12', 67)]; injected r80 across the line detected: 0.5 mm 0.00, 0.75 mm 0.17, 1 mm 0.97, 1.5 mm 1.00
+  threshold 0.35 px: labelled moving pairs flagged 57/60; negatives flagged 13/623; negative alarm frames (persistence 2) 7 [('A44', 62), ('A44', 73), ('A44', 74), ('A08', 88), ('A12', 62), ('A12', 63), ('A12', 67)]; injected r80 across the line detected: 0.5 mm 0.02, 0.75 mm 0.67, 1 mm 0.99, 1.5 mm 1.00
+  threshold 0.30 px: labelled moving pairs flagged 57/60; negatives flagged 18/623; negative alarm frames (persistence 2) 10 [('A30', 72), ('A44', 62), ('A44', 73), ('A44', 74), ('A44', 81), ('A44', 82), ('A08', 88), ('A12', 62), ('A12', 63), ('A12', 67)]; injected r80 across the line detected: 0.5 mm 0.08, 0.75 mm 0.97, 1 mm 1.00, 1.5 mm 1.00
+  threshold 0.25 px: labelled moving pairs flagged 58/60; negatives flagged 34/623; negative alarm frames (persistence 2) 15 [('A30', 72), ('A44', 62), ('A44', 73), ('A44', 74), ('A44', 81), ('A44', 82), ('A08', 88), ('A12', 62), ('A12', 63), ('A12', 67), ('A26', 69), ('legs_static', 81), ('legs_static', 86), ('legs_static', 87), ('legs_static', 90)]; injected r80 across the line detected: 0.5 mm 0.49, 0.75 mm 0.99, 1 mm 1.00, 1.5 mm 1.00

@@ -39,7 +39,14 @@ def main():
     npairs = len({(r['scan'], r['frame']) for r in rows})
     print(f'Scans: {", ".join(scans)}; {npairs} pairs, {len(rows)} scored pairs')
     ctl = [fl(r['epi_enc_cl16']) for r in rows if r['region'] == 'none']
-    print(f'Control (no injection) k=16: median {np.nanmedian(ctl):.3f} px, max {np.nanmax(ctl):.3f} px\n')
+    print(f'Control (no injection) k=16: median {np.nanmedian(ctl):.3f} px, max {np.nanmax(ctl):.3f} px')
+    print('Body points above the detector (median per pair) and r40 detection at 5 mm across the line, k=8/16/30:')
+    for s in scans:
+        R = [r for r in rows if r['scan'] == s]
+        m = [r for r in R if r['region'] == 'r40' and float(r['size_mm']) == 5.0 and int(r['angle_deg']) == 0]
+        det = [np.mean([np.nan_to_num(fl(r[c])) > a.threshold for r in m]) for c in ('epi_enc_cl', 'epi_enc_cl16', 'epi_enc_cl30')]
+        print(f'  {s:12s} n_body {np.median([int(r["n_body"]) for r in R if r["region"] == "none"]):6.0f}   ' + ' / '.join(f'{d:.2f}' for d in det))
+    print()
 
     for col, k in (('epi_enc_cl16', 16), ('epi_enc_cl', 8), ('epi_enc_cl30', 30)):
         g = defaultdict(list)
@@ -65,7 +72,7 @@ def main():
     print('   (static scans, confirmed pauses, unlabelled pairs more than 2 pairs from a label)')
     g16 = defaultdict(list)
     for r in rows:
-        if r['region'] == 'r40' and int(r['angle_deg']) == 0:
+        if r['region'] == 'r80' and int(r['angle_deg']) == 0:
             g16[float(r['size_mm'])].append(fl(r['epi_enc_cl16']))
     neg, mov = {}, {}
     for n in cm.SCANS:
@@ -87,10 +94,9 @@ def main():
         sus = {n: {k for k, v in G[n].items() if np.nan_to_num(v) > thr} for n in G}
         fa = [(n, k) for n in neg for k in cm.alarms(sus[n]) if k in neg[n]]
         tp = sum(len(sus[n] & set(mov[n])) for n in mov)
-        det = [s for s in sorted(g16) if np.mean(np.nan_to_num(np.array(g16[s])) > thr) >= 0.9]
+        det = ', '.join(f'{s:g} mm {np.mean(np.nan_to_num(np.array(g16[s])) > thr):.2f}' for s in (0.5, 0.75, 1.0, 1.5))
         print(f'  threshold {thr:.2f} px: labelled moving pairs flagged {tp}/{nmov}; negatives flagged {len(fp)}/{nneg}; '
-              f'negative alarm frames (persistence 2) {len(fa)} {fa}; smallest injected size detected in >=90% of pairs '
-              f'(r40, across the line): {det[0] if det else ">5"} mm')
+              f'negative alarm frames (persistence 2) {len(fa)} {fa}; injected r80 across the line detected: {det}')
 
 if __name__ == '__main__':
     main()

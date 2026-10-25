@@ -1,0 +1,110 @@
+== Chained L=4, no injection: score per scan (px)
+  A07           63/ 63 scored  median 0.29  max 0.39
+  A08           64/ 64 scored  median 0.45  max 14.49
+  A11           64/ 64 scored  median 0.24  max 0.46
+  A12           64/ 64 scored  median 0.25  max 7.38
+  A26           64/ 64 scored  median 0.15  max 2.47
+  A27           64/ 64 scored  median 0.28  max 0.50
+  A28_1         61/ 63 scored  median 0.91  max 29.51
+  A30           64/ 64 scored  median 0.38  max 11.60
+  A44           66/ 66 scored  median 0.58  max 6.87
+  VC01_bh       20/ 63 scored  median 0.28  max 0.58
+  legs_static   63/ 63 scored  median 0.65  max 1.18
+  phantom       61/ 63 scored  median 0.74  max 1.32
+  static scans + phantom: median 0.33, 99th pct 1.13, max 1.32
+
+== Synthetic motion on the static scans (128 pairs): share detected
+   drift v mm/frame: adjacent pair sees v per pair (share of adjacent pairs above 0.5 px, injection_2026_10);
+   chained L=4 sees 4v. step s mm: the adjacent pair that contains the step sees s, but only that one pair.
+  drift r80   0 deg  size   0.25    0.5   0.75      1
+      adjacent pair (0.5 px)   0.00   0.00   0.00   0.37
+      chained > 0.8 px        0.10   0.95   0.99   0.99
+      chained > 1.0 px        0.04   0.40   0.99   0.99
+      chained > 1.2 px        0.00   0.03   0.97   0.99
+      chained > 1.4 px        0.00   0.00   0.59   0.99
+      chained > 1.6 px        0.00   0.00   0.06   0.97
+  drift r80  60 deg  size   0.25    0.5   0.75      1
+      adjacent pair (0.5 px)   0.00   0.00   0.00   0.00
+      chained > 0.8 px        0.09   0.10   0.27   0.95
+      chained > 1.0 px        0.04   0.04   0.04   0.39
+      chained > 1.2 px        0.00   0.00   0.00   0.02
+      chained > 1.4 px        0.00   0.00   0.00   0.00
+      chained > 1.6 px        0.00   0.00   0.00   0.00
+  drift body  0 deg  size   0.25    0.5   0.75      1
+      adjacent pair (0.5 px)   0.00   0.00   0.01   0.82
+      chained > 0.8 px        0.15   1.00   1.00   1.00
+      chained > 1.0 px        0.02   0.95   1.00   1.00
+      chained > 1.2 px        0.00   0.21   1.00   1.00
+      chained > 1.4 px        0.00   0.05   1.00   1.00
+      chained > 1.6 px        0.00   0.00   0.39   1.00
+  drift body 60 deg  size   0.25    0.5   0.75      1
+      adjacent pair (0.5 px)   0.00   0.00   0.00   0.00
+      chained > 0.8 px        0.06   0.13   0.79   1.00
+      chained > 1.0 px        0.00   0.04   0.10   0.98
+      chained > 1.2 px        0.00   0.00   0.04   0.17
+      chained > 1.4 px        0.00   0.00   0.00   0.04
+      chained > 1.6 px        0.00   0.00   0.00   0.00
+
+  step  r80   0 deg  size      1      2      3      4      5
+      chained > 0.8 px        0.10   0.95   0.98   0.98   0.98
+      chained > 1.0 px        0.04   0.41   0.98   0.98   0.98
+      chained > 1.2 px        0.00   0.03   0.97   0.98   0.98
+      chained > 1.4 px        0.00   0.00   0.60   0.98   0.98
+      chained > 1.6 px        0.00   0.00   0.06   0.97   0.98
+  step  r80  60 deg  size      1      2      3      4      5
+      chained > 0.8 px        0.09   0.10   0.28   0.97   0.98
+      chained > 1.0 px        0.04   0.04   0.05   0.42   0.96
+      chained > 1.2 px        0.00   0.00   0.00   0.03   0.44
+      chained > 1.4 px        0.00   0.00   0.00   0.00   0.02
+      chained > 1.6 px        0.00   0.00   0.00   0.00   0.00
+  step  body  0 deg  size      1      2      3      4      5
+      chained > 0.8 px        0.16   1.00   1.00   1.00   1.00
+      chained > 1.0 px        0.03   0.92   1.00   1.00   1.00
+      chained > 1.2 px        0.00   0.24   1.00   1.00   1.00
+      chained > 1.4 px        0.00   0.05   1.00   1.00   1.00
+      chained > 1.6 px        0.00   0.00   0.42   1.00   1.00
+  step  body 60 deg  size      1      2      3      4      5
+      chained > 0.8 px        0.05   0.15   0.80   1.00   1.00
+      chained > 1.0 px        0.00   0.04   0.14   0.98   1.00
+      chained > 1.2 px        0.00   0.00   0.03   0.19   0.97
+      chained > 1.4 px        0.00   0.00   0.00   0.06   0.19
+      chained > 1.6 px        0.00   0.00   0.00   0.01   0.07
+
+== Real scans: alarms (persistence 2). Adjacent-pair pipeline as now, chained check at candidate thresholds
+  chained > 0.8 px: chained alarms on negative spans 20/552 [('A12', 65), ('A12', 66), ('A12', 67), ('A12', 68), ('A12', 69), ('A12', 70), ('legs_static', 82), ('legs_static', 83), ('legs_static', 84), ('legs_static', 85), ('legs_static', 86), ('legs_static', 87), ('legs_static', 88), ('legs_static', 89), ('legs_static', 92), ('legs_static', 93), ('legs_static', 96), ('legs_static', 97), ('legs_static', 109), ('legs_static', 110)]; chained alarms on moving spans 69/89
+      A30          alarm frames added to the adjacent-pair alarms: [65, 66, 67, 68, 70, 71, 72]
+      A44          alarm frames added to the adjacent-pair alarms: [58, 59, 62, 63, 77, 78, 79, 81, 82, 83, 86, 87, 88]
+      A08          alarm frames added to the adjacent-pair alarms: [88, 89, 90]
+      A12          alarm frames added to the adjacent-pair alarms: [62, 63, 64, 65, 66, 67, 68, 69, 70]
+      A26          alarm frames added to the adjacent-pair alarms: [62, 63, 64, 65, 69, 70, 71]
+      A28_1        alarm frames added to the adjacent-pair alarms: [88, 111, 112, 113]
+      legs_static  alarm frames added to the adjacent-pair alarms: [82, 83, 84, 85, 86, 87, 88, 89, 92, 93, 96, 97, 109, 110]
+  chained > 1.0 px: chained alarms on negative spans 8/552 [('A12', 65), ('A12', 66), ('A12', 67), ('A12', 68), ('A12', 69), ('legs_static', 88), ('legs_static', 89), ('legs_static', 93)]; chained alarms on moving spans 60/89
+      A30          alarm frames added to the adjacent-pair alarms: [65, 66, 67, 70, 71, 72]
+      A44          alarm frames added to the adjacent-pair alarms: [58, 59, 62, 63, 77, 78, 79, 81, 82, 83, 86, 87, 88]
+      A08          alarm frames added to the adjacent-pair alarms: [88]
+      A12          alarm frames added to the adjacent-pair alarms: [62, 63, 64, 65, 66, 67, 68, 69]
+      A26          alarm frames added to the adjacent-pair alarms: [62, 63, 64, 70]
+      A28_1        alarm frames added to the adjacent-pair alarms: [88, 112, 113]
+      legs_static  alarm frames added to the adjacent-pair alarms: [88, 89, 93]
+  chained > 1.2 px: chained alarms on negative spans 0/552 []; chained alarms on moving spans 57/89
+      A30          alarm frames added to the adjacent-pair alarms: [65, 66, 67, 70, 71, 72]
+      A44          alarm frames added to the adjacent-pair alarms: [58, 59, 62, 63, 77, 78, 79, 81, 82, 83, 86, 87]
+      A08          alarm frames added to the adjacent-pair alarms: [88]
+      A12          alarm frames added to the adjacent-pair alarms: [62, 63, 64]
+      A26          alarm frames added to the adjacent-pair alarms: [62, 63, 64, 70]
+      A28_1        alarm frames added to the adjacent-pair alarms: [88, 112]
+  chained > 1.4 px: chained alarms on negative spans 0/552 []; chained alarms on moving spans 52/89
+      A30          alarm frames added to the adjacent-pair alarms: [65, 66, 67, 70, 71]
+      A44          alarm frames added to the adjacent-pair alarms: [58, 59, 62, 63, 77, 78, 79, 81, 82, 83, 86, 87]
+      A08          alarm frames added to the adjacent-pair alarms: [88]
+      A12          alarm frames added to the adjacent-pair alarms: [62, 63, 64]
+      A26          alarm frames added to the adjacent-pair alarms: [62, 63]
+      A28_1        alarm frames added to the adjacent-pair alarms: [88, 112]
+  chained > 1.6 px: chained alarms on negative spans 0/552 []; chained alarms on moving spans 48/89
+      A30          alarm frames added to the adjacent-pair alarms: [65, 66, 67]
+      A44          alarm frames added to the adjacent-pair alarms: [58, 59, 62, 63, 77, 81, 82, 83, 86, 87]
+      A08          alarm frames added to the adjacent-pair alarms: [88]
+      A12          alarm frames added to the adjacent-pair alarms: [62, 63, 64]
+      A26          alarm frames added to the adjacent-pair alarms: [62, 63]
+      A28_1        alarm frames added to the adjacent-pair alarms: [88, 112]

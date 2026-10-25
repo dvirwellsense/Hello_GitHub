@@ -14,7 +14,10 @@ Scores per pair, pixels of the undistorted half-resolution frame (~2.2 mm/px at 
   *_cl = spatial cluster score (8 points), *_cl16 = 16 points, *_cl30 = 30 points, *_med = over all body points
   motion_mm = the score used for the alarm (epi_enc_cl<k>, k = --cluster-k, or static_cl, converted to mm at the bed plane)
 
-Alarm rule: score above threshold for --persistence consecutive pairs inside the exposure window.
+Alarm rule: score above threshold for --persistence consecutive pairs inside the exposure window. Second check
+(default since October 2026, --chain-L 4 --chain-threshold 1.2 px): frame i against frame i-4 with the points tracked
+through every frame in between; it catches slow drift (~0.75 mm per frame) and a motion that ends within one frame and is
+then held (~3 mm), which adjacent pairs miss (results/chain4_2026_10). Its alarm (same persistence) is OR-ed in.
 Pairs where the gantry speed changes by >30% (start/stop/reversal) are skipped (accel_guard): there the
 encoder-to-image timing error dominates. Re-run only the decision + plot with --from-csv.
 
@@ -38,7 +41,7 @@ import _path  # noqa: F401
 from motion.calib import Calibration
 from motion.gantry import GantryModel
 from motion.masks import body_and_specular
-from motion.rigidity import evaluate_pair
+from motion.rigidity import chained_score, evaluate_pair
 from motion.roi import DetectorROI
 from motion.scan import Scan
 
@@ -61,8 +64,11 @@ def plot(rows, path, a, labelled):
     st = np.array([r['same_angle'] for r in rows])
     ax[1].plot(f[~st], m[~st], 'o', ms=3.5, color='#2a78d6', label='gantry moving (epipolar check)')
     ax[1].plot(f[st], m[st], 's', ms=3.5, color='#eb6834', label='gantry stopped (direct comparison)')
-    al = np.array([r['alarm'] for r in rows])
+    al = np.array([bool(r.get('alarm_adjacent', r['alarm'])) for r in rows])
     ax[1].plot(f[al], m[al], 'x', ms=9, mew=2, color='#222', label='alarm')
+    ch = np.array([bool(r.get('alarm_chain')) and not a_ for r, a_ in zip(rows, al)])
+    if ch.any():
+        ax[1].plot(f[ch], m[ch], '+', ms=11, mew=2, color='#8e44ad', label=f'alarm, second check only (frame i-{a.chain_L} -> i)')
     g = np.array([r.get('accel_guard', False) for r in rows], bool)
     ax[1].plot(f[g], m[g], 'o', ms=6, mfc='none', color='#999', label='angle unreliable')
     ins = np.array([r.get('motion_state') == 'NO_BODY_DATA' and r['exposure'] for r in rows], bool)
@@ -173,7 +179,11 @@ def decide(rows, a):
     candidate_raw: score above threshold, before anything else.
     alarm_confirmed: persistence over SUSPECT & (VERIFIED or NOT_CHECKED), inside the exposure window.
     alarm_any:       persistence over SUSPECT whatever the geometry (unreliable and missing background included).
-    alarm:           alarm_confirmed with --guard-action drop, alarm_any with mark."""
+    alarm_adjacent:  alarm_confirmed with --guard-action drop, alarm_any with mark (adjacent pairs).
+    chain_suspect:   second check (--chain-L, frame i-L -> i, points tracked through every frame in between) above
+                     --chain-threshold, all L pairs of the chain inside the exposure window with the gantry moving.
+    alarm_chain:     persistence over chain_suspect.
+    alarm:           alarm_adjacent or alarm_chain."""
     if rows and SCORE_COLUMN[a.cluster_k] not in rows[0]:
         raise SystemExit(f'this CSV has no column {SCORE_COLUMN[a.cluster_k]} (written before the cluster size became a parameter): use --cluster-k 30')
     unreliable = guard_flags(rows, a)
@@ -202,6 +212,19 @@ def decide(rows, a):
                  motion_state=motion, geometry_state=geom, state=f'{motion}/{geom}',
                  label=LABELS.get((motion, geom), 'insufficient body data (fewer than 30 points)'),
                  alarm_confirmed=conf, alarm_any=anyy, alarm=conf if a.guard_action == 'drop' else anyy)
+    # Second check (chained i-L -> i): its own suspects and persistence; the alarm is either check.
+    CL = getattr(a, 'chain_L', 0)
+    has_chain = bool(rows) and 'chain_cl16' in rows[0]
+    if CL and rows and not has_chain:
+        print('note: this CSV has no chain_cl16 column (written before the second check): adjacent pairs only')
+    run = 0
+    for k, r in enumerate(rows):
+        span = rows[k - CL + 1:k + 1] if CL and k >= CL - 1 else []
+        ok = has_chain and len(span) == CL and all((x['exposure'] or a.all_phases) and not x['same_angle'] for x in span)
+        sus = bool(ok and np.isfinite(r['chain_cl16']) and r['chain_cl16'] > a.chain_threshold)
+        run = run + 1 if sus else 0
+        r.update(alarm_adjacent=r['alarm'], chain_suspect=sus, alarm_chain=run >= a.persistence)
+        r['alarm'] = bool(r['alarm_adjacent'] or r['alarm_chain'])
     return rows
 
 
@@ -240,6 +263,11 @@ def main():
     ap.add_argument('--threshold', type=float, default=0.5, help='gantry moving: the cluster score, px (0.5 px ~ 1.1 mm)')
     ap.add_argument('--static-threshold-mm', type=float, default=0.5, help='gantry stopped: displacement, mm')
     ap.add_argument('--persistence', type=int, default=2, help='consecutive suspected pairs needed for an alarm (default 2 since October 2026; 1 = every suspected pair alarms)')
+    ap.add_argument('--chain-L', type=int, default=4,
+                    help='second check for slow drift and step-and-hold motion: frame i against frame i-L, points tracked '
+                         'through every frame in between (k=16). 0 = off (adjacent pairs only, as before October 2026)')
+    ap.add_argument('--chain-threshold', type=float, default=1.2,
+                    help='second check: cluster score threshold, px (results/chain4_2026_10)')
     ap.add_argument('--detect', choices=('global', 'masked', 'masked_abs'), default='global',
                     help='global: corners on the whole image then filtered; masked: body corners detected inside body & ROI '
                          '(quality relative to the body); masked_abs: same region, quality threshold of global')
@@ -292,6 +320,10 @@ def main():
         raise SystemExit('--baseline > 1 needs --roi-fixed (the ROI is carried pair by pair)')
     if L > 1 and bed is not None:
         raise SystemExit('--baseline > 1 cannot carry the bed outline (pair by pair): leave out --bed, use --guard none')
+    CL = a.chain_L
+    if CL and L > 1:
+        raise SystemExit('the chained second check (--chain-L) runs on adjacent pairs only: use --chain-L 0 with --baseline > 1')
+    chain = {}  # frame -> (gray, body, specular, region) for the chained second check
     images = {k: scan.image(k) for k in range(L)}
     for i in range(L, len(scan)):
         j = i - L  # frame a of the pair
@@ -323,6 +355,22 @@ def main():
                 near = cv2.dilate(reg, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k))) > 0
         if a.save_masks:
             save_mask(a.save_masks, int(scan.index[j]), prev, body, spec, roi)
+        chain_out = {}
+        if CL:
+            creg = region
+            if creg is None and roi is not None:
+                creg = np.zeros(body.shape, np.uint8)
+                cv2.fillPoly(creg, roi.outline(), 255)
+            chain[j] = (cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY), body, spec, creg)
+            chain.pop(j - CL, None)
+            if i - CL in chain:
+                g = [chain[k][0] for k in range(i - CL, i)] + [cv2.cvtColor(cur, cv2.COLOR_BGR2GRAY)]
+                _, b0, s0, r0 = chain[i - CL]
+                sc, nc = chained_score(g, b0, s0, r0, calib, gantry, scan.angle(i - CL, a.sync), scan.angle(i, a.sync),
+                                       body_fb_max=a.body_fb_max)
+                chain_out = dict(chain_cl16=sc, n_chain=nc)
+            else:
+                chain_out = dict(chain_cl16=np.nan, n_chain=0)
         r = evaluate_pair(prev, cur, scan.angle(j, a.sync), scan.angle(i, a.sync), body, spec, calib, gantry, roi=roi,
                           detect_mode=a.detect, roi_region=region, body_fb_max=a.body_fb_max, bed=bed, bg_near=near)
         H = r.pop('_H')
@@ -335,7 +383,7 @@ def main():
                          t_req_a=float(scan.time_s[j]), t_sav_a=float(scan.saved_s[j]),
                          ab_a=float(scan.angle_before[j]), aa_a=float(scan.angle_after[j]),
                          t_req_b=float(scan.time_s[i]), t_sav_b=float(scan.saved_s[i]),
-                         ab_b=float(scan.angle_before[i]), aa_b=float(scan.angle_after[i]), **r))
+                         ab_b=float(scan.angle_before[i]), aa_b=float(scan.angle_after[i]), **r, **chain_out))
     finish(decide(rows, a), a)
 
 
@@ -402,6 +450,9 @@ def finish(rows, a):
     win = [r['frame'] for r in rows if r['exposure']]
     print(f'{len(rows)} pairs, exposure window frames {min(win) if win else None}-{max(win) if win else None}')
     print('alarm frames:', [r['frame'] for r in rows if r['alarm']])
+    extra = [r['frame'] for r in rows if r.get('alarm_chain') and not r.get('alarm_adjacent')]
+    if extra:
+        print('  of these, from the second check only:', extra)
     ex = [r for r in rows if r['exposure']]
     from collections import Counter
     print('exposure-window motion_state:', dict(Counter(r['motion_state'] for r in ex)))

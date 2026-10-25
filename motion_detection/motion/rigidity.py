@@ -161,3 +161,26 @@ def evaluate_pair(img_a, img_b, angle_a, angle_b, body, specular, calib, gantry,
         return out, dict(p0=p0[on_body], p1=p1[on_body], fb=fb[on_body], n0=b0, n1=b1, e=e, Fe=Fe,
                          bg_p0=p0[on_bg], bg_n0=n0[on_bg], bg_e=epipolar_distance(Fe, n0[on_bg], n1[on_bg]))
     return out
+
+
+def chained_score(grays, body, specular, region, calib, gantry, angle_a, angle_b, body_fb_max=0.1, k=16):
+    """Second check (slow drift, step-and-hold): pair a -> b = grays[0] -> grays[-1] with the body points of frame a
+    tracked through every frame in between (KLT; forward-backward limit at every step), scored with the encoder
+    epipolar geometry of the two end frames. Same body point selection as detect_mode='masked_abs'.
+    Returns (k-cluster score in px, number of points); nan when fewer than k points survive."""
+    m = ((body > 0) & (specular == 0)).astype(np.uint8) * 255
+    if region is not None:
+        m &= region
+    p0 = detect(grays[0], mask=m, absolute_quality=True)
+    cur, keep = p0.copy(), np.ones(len(p0), bool)
+    for g0, g1 in zip(grays[:-1], grays[1:]):
+        nxt, ok, fb = track(g0, g1, cur, return_fb=True)
+        keep &= ok & (fb < body_fb_max)
+        cur = nxt
+    if keep.sum() < k:
+        return np.nan, int(keep.sum())
+    f = calib.focal_px
+    n0, n1 = calib.undistort_points(p0[keep]) * f, calib.undistort_points(cur[keep]) * f
+    Kn = np.diag([1 / f, 1 / f, 1])
+    Fe = Kn.T @ gantry.essential(angle_a, angle_b) @ Kn
+    return cluster_score(n0, epipolar_distance(Fe, n0, n1), k), int(keep.sum())

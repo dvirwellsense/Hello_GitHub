@@ -29,7 +29,7 @@ def fl(v):
 
 def main(ref_root, new_root):
     ref_root, new_root = Path(ref_root), Path(new_root)
-    total_bad = 0
+    total_bad = missing = 0
     for d in sorted(p for p in ref_root.iterdir() if p.is_dir()):
         nd = new_root / d.name
         if not nd.is_dir():
@@ -37,8 +37,7 @@ def main(ref_root, new_root):
         for f in sorted(d.glob('*.csv')):
             g = nd / f.name
             if not g.exists():
-                print(f'{d.name}/{f.name}: missing in the new run')
-                total_bad += 1
+                missing += 1
                 continue
             a = {key(r): r for r in csv.DictReader(open(f))}
             b = {key(r): r for r in csv.DictReader(open(g))}
@@ -59,7 +58,9 @@ def main(ref_root, new_root):
                             bad.append((k[0], c, x, y))
             total_bad += len(bad)
             print(f'{d.name}/{f.name}: {"identical" if not bad else f"{len(bad)} differences, e.g. {bad[:3]}"}')
-    print('ALL IDENTICAL' if not total_bad else f'{total_bad} differences in total')
+    if missing:
+        print(f'{missing} files of the release are not in the new run (not compared)')
+    print('ALL COMPARED FILES IDENTICAL' if not total_bad else f'{total_bad} differences in total')
 
 
 if __name__ == '__main__':

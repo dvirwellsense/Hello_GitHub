@@ -96,7 +96,7 @@ def per_pair(n, comb, reg):
             celig = ''
         out.append(dict(
             scan=n, frame_a=a, frame_b=b, in_exposure_window=int(win), phase=r['phase'], same_angle=int(same),
-            angle_b_deg=fmt(fl(r['angle']), 3), label=lab, label_type=typ, negative_in_counts=int(L.negative(n, b)),
+            angle_b_deg=fmt(fl(r['angle']), 3), label=lab, label_type=typ, negative_in_counts=int(win and L.negative(n, b)),
             adj_score_kind='direct (same angle, displacement)' if same else 'epipolar k=16', adj_score_px=fmt(score),
             adj_n_points=nb, adj_measurable=int(np.isfinite(score)), adj_not_measurable_reason=reason,
             adj_suspect=int(r['motion_state'] == 'SUSPECT'), adj_suspect_in_window=int(r['motion_state'] == 'SUSPECT' and win),
@@ -140,6 +140,9 @@ def comparison(rows):
         idx = {r['frame_b']: r for r in by[n]}
         mov = [r for r in R if r['label'] == 'motion']
         neg = [r for r in R if r['negative_in_counts']]
+
+        def spans_motion(r):
+            return any(idx.get(x, {}).get('label') in ('motion', 'motion_range') for x in range(r['frame_b'] - CL + 1, r['frame_b'] + 1))
         summary.append(dict(
             scan=n, window_pairs=len(R), adj_measurable=sum(r['adj_measurable'] for r in R),
             chain_measurable_and_eligible=sum(r['chain_measurable'] and r['chain_eligible'] for r in R),
@@ -148,6 +151,8 @@ def comparison(rows):
             negatives=len(neg), negative_suspect_regular=sum(r['adj_suspect'] for r in neg),
             negative_alarm_regular=sum(r['alarm_regular'] for r in neg), negative_chain_suspect=sum(r['chain_suspect'] for r in neg),
             negative_alarm_combined=sum(r['alarm_final'] for r in neg),
+            negative_alarm_added_chain_spans_motion=sum(r['alarm_final'] and not r['alarm_regular'] and spans_motion(r) for r in neg),
+            negative_alarm_added_no_motion_in_chain=sum(r['alarm_final'] and not r['alarm_regular'] and not spans_motion(r) for r in neg),
             alarm_frames_regular=rng([r['frame_b'] for r in R if r['alarm_regular']]),
             alarm_frames_added_by_chain=rng([r['frame_b'] for r in R if r['alarm_final'] and not r['alarm_regular']])))
         # events: stated episodes and, inside them, segments of consecutive exact motion pairs

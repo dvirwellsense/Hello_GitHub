@@ -37,9 +37,11 @@ def negatives(n, frames):
     return {k for k in frames if n in c.STATIC or k in c.PAUSE.get(n, set()) or k not in near}
 
 
-def main(root):
+def main(root, score_dir=None, inject_dir=None, adj_injection='results/injection_2026_10', real='results/k16_2026_10'):
     root = Path(root)
-    sc = {p.stem: {int(r['frame']): fl(r['chain_cl16']) for r in csv.DictReader(open(p))} for p in sorted((root / 'score').glob('*.csv'))}
+    score_dir = Path(score_dir) if score_dir else root / 'score'
+    inject_dir = Path(inject_dir) if inject_dir else root / 'inject'
+    sc = {p.stem: {int(r['frame']): fl(r['chain_cl16']) for r in csv.DictReader(open(p))} for p in sorted(score_dir.glob('*.csv'))}
     print(f'== Chained L={L}, no injection: score per scan (px)')
     for n, d in sc.items():
         v = np.array(list(d.values()))
@@ -49,7 +51,7 @@ def main(root):
     print(f'  static scans + phantom: median {np.median(st):.2f}, 99th pct {np.percentile(st, 99):.2f}, max {st.max():.2f}\n')
 
     inj = []
-    for p in sorted((root / 'inject').glob('*.csv')):
+    for p in sorted(inject_dir.glob('*.csv')):
         inj += list(csv.DictReader(open(p)))
     g = defaultdict(list)
     for r in inj:
@@ -57,7 +59,7 @@ def main(root):
             g[(r['kind'], r['region'], int(r['angle_deg']), float(r['size_mm']))].append(fl(r['chain_cl16']))
     # adjacent-pair detection of the same per-frame displacement (injection_2026_10, k=16, 0.5 px)
     adj = defaultdict(list)
-    for p in Path('results/injection_2026_10').glob('*.csv'):
+    for p in Path(adj_injection).glob('*.csv'):
         for r in csv.DictReader(open(p)):
             if r['region'] in ('r80', 'body'):
                 adj[(r['region'], int(r['angle_deg']), float(r['size_mm']))].append(np.nan_to_num(fl(r['epi_enc_cl16'])) > 0.5)
@@ -80,7 +82,7 @@ def main(root):
     print('== Real scans: alarms (persistence 2). Adjacent-pair pipeline as now, chained check at candidate thresholds')
     adj_al, adj_neg = {}, {}
     for n in cm.SCANS:
-        R = cm.load('results/k16_2026_10', n)
+        R = cm.load(real, n)
         if R is None:
             continue
         s1 = {int(r['frame']): fl(r['epi_enc_cl16']) for r in R}
@@ -109,4 +111,12 @@ def main(root):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1] if len(sys.argv) > 1 else 'results/chain4_2026_10')
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument('root', nargs='?', default='results/chain4_2026_10')
+    ap.add_argument('--score-dir', help='CSVs with a chain_cl16 column (default <root>/score; evaluate_scan.py runs work too)')
+    ap.add_argument('--inject-dir', help='chain_check.py inject CSVs (default <root>/inject)')
+    ap.add_argument('--adjacent-injection', default='results/injection_2026_10')
+    ap.add_argument('--real', default='results/k16_2026_10', help='adjacent-pair runs (epi_enc_cl16)')
+    a = ap.parse_args()
+    main(a.root, a.score_dir, a.inject_dir, a.adjacent_injection, a.real)

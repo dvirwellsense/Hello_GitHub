@@ -5,6 +5,7 @@ Scores are in pixels of the undistorted calibration frame (half resolution; ~2.2
 """
 import cv2
 import numpy as np
+from scipy.spatial import cKDTree
 
 from .tracking import detect, track
 
@@ -18,7 +19,6 @@ def epipolar_distance(F, a, b):
 def knn(pts, k):
     """Indices of the k nearest points of every point (itself included). k-d tree: O(n log n) instead of the full
     n x n distance matrix (same neighbours; was 45% of the time per frame with ~1000 body points)."""
-    from scipy.spatial import cKDTree
     return cKDTree(pts).query(pts, k)[1]
 
 

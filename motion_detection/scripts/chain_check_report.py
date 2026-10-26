@@ -41,7 +41,15 @@ def main(root, score_dir=None, inject_dir=None, adj_injection='results/injection
     root = Path(root)
     score_dir = Path(score_dir) if score_dir else root / 'score'
     inject_dir = Path(inject_dir) if inject_dir else root / 'inject'
-    sc = {p.stem: {int(r['frame']): fl(r['chain_cl16']) for r in csv.DictReader(open(p))} for p in sorted(score_dir.glob('*.csv'))}
+    sc = {}
+    for p in sorted(score_dir.glob('*.csv')):
+        R = list(csv.DictReader(open(p)))
+        if R and 'exposure' in R[0]:
+            # an evaluate_scan.py run (all phases): keep the chains whose L pairs are all inside the exposure window with
+            # the gantry moving, as chain_check.py score does
+            ok = lambda k: k >= L - 1 and all(x['exposure'] == 'True' and x['same_angle'] == 'False' for x in R[k - L + 1:k + 1])
+            R = [r for k, r in enumerate(R) if ok(k)]
+        sc[p.stem] = {int(r['frame']): fl(r['chain_cl16']) for r in R}
     print(f'== Chained L={L}, no injection: score per scan (px)')
     for n, d in sc.items():
         v = np.array(list(d.values()))
